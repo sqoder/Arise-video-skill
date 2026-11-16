@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080, initial-scale=1.0" />
+<title>Anthropic Editorial Explainer Stage</title>
+<style>
+  :root {
+    --parchment: #FAF9F5;
+    --bone: #F3F1EA;
+    --sand: #E8E4D9;
+    --carbon: #141413;
+    --carbon-card: #1D1C1A;
+    --carbon-soft: #262522;
+    --terra: #D97757;
+    --terra-wash: rgba(217, 119, 87, 0.26);
+    --sage: #788C5D;
+    --amber: #C99449;
+    --stone: #B8B3A7;
+    --ink-muted: #6E6A61;
+    --border-light: #DFDCD2;
+    --border-dark: #2F2D29;
+
+    --serif: Georgia, "Noto Serif SC", "Songti SC", "STSong", serif;
+    --sans: "PingFang SC", "Hiragino Sans GB", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--parchment);
+    color: var(--carbon);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .stage {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--parchment);
+    color: var(--carbon);
+  }
+  .stage.dark {
+    background: var(--carbon);
+    color: var(--parchment);
+  }
+
+  /* Drafting grid + 1px architectural frame */
+  .grid-bg {
+    position: absolute;
+    inset: 26px;
+    background-image:
+      linear-gradient(to right, rgba(223, 220, 210, 0.42) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(223, 220, 210, 0.42) 1px, transparent 1px);
+    background-size: 160px 160px;
+    border: 1px solid var(--border-light);
+    pointer-events: none;
+  }
+  .stage.dark .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(47, 45, 41, 0.55) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(47, 45, 41, 0.55) 1px, transparent 1px);
+    border-color: var(--border-dark);
+  }
+
+  /* Subtle warm paper grain */
+  .paper-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.032;
+    mix-blend-mode: multiply;
+  }
+  .stage.dark .paper-grain {
+    opacity: 0.045;
+    mix-blend-mode: screen;
+  }
+
+  /* Persistent Top Chapter Bar */
+  .top-chrome {
+    position: absolute;
+    top: 44px;
+    left: 64px;
+    right: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 20;
+  }
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .series-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .stage.dark .series-tag { color: var(--stone); }
+  .series-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--terra);
+  }
+  .chapter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .ch-pill {
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-light);
+    background: rgba(250, 249, 245, 0.7);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .stage.dark .ch-pill {
+    border-color: var(--border-dark);
+    background: rgba(29, 28, 26, 0.85);
+    color: var(--stone);
+  }
+  .ch-pill.done {
+    background: var(--bone);
+    color: var(--carbon);
+  }
+  .stage.dark .ch-pill.done {
+    background: var(--carbon-soft);
+    color: var(--parchment);
+  }
+  .ch-pill.active {
+    background: var(--terra);
+    border-color: var(--terra);
+    color: #FFFDF9;
+    font-weight: 600;
+  }
+
+  .top-progress-track {
+    width: 100%;
+    height: 2px;
+    background: var(--border-light);
+    overflow: hidden;
+  }
+  .stage.dark .top-progress-track { background: var(--border-dark); }
+  .top-progress-fill {
+    height: 100%;
+    background: var(--terra);
+    width: 0%;
+  }
+
+  /* Safe Center Viewport (zero overlap with top/bottom chrome) */
+  .canvas-safe {
+    position: absolute;
+    top: 118px;
+    bottom: 146px;
+    left: 72px;
+    right: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  /* Persistent Bottom Narrator & Subtitle Bar */
+  .bottom-narrator {
+    position: absolute;
+    bottom: 42px;
+    left: 72px;
+    right: 72px;
+    height: 82px;
+    border-radius: 18px;
+    background: var(--bone);
+    border: 1px solid var(--border-light);
+    padding: 5px;
+    z-index: 20;
+    box-shadow: 0 10px 28px rgba(20, 20, 19, 0.05);
+  }
+  .stage.dark .bottom-narrator {
+    background: var(--carbon-card);
+    border-color: var(--border-dark);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  }
+  .bottom-narrator-core {
+    width: 100%;
+    height: 100%;
+    border-radius: 13px;
+    background: #FFFFFF;
+    border: 1px solid rgba(223, 220, 210, 0.7);
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: 230px 1fr 200px;
+    align-items: center;
+    gap: 24px;
+  }
+  .stage.dark .bottom-narrator-core {
+    background: var(--carbon);
+    border-color: rgba(217, 119, 87, 0.25);
+  }
+
+  .wave-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .voice-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--sage);
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+  }
+  .voice-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sage);
+  }
+  .wave-bars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 36px;
+  }
+  .wbar {
+    width: 3px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--terra);
+  }
+  .wbar.sage { background: var(--sage); }
+
+  .subtitle-text {
+    font-size: 23px;
+    font-weight: 500;
+    line-height: 1.32;
+    color: var(--carbon);
+    text-align: center;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .stage.dark .subtitle-text { color: var(--parchment); }
+
+  .time-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .stage.dark .time-meta { color: var(--stone); }
+
+  /* Shared Double-Bezel Card Primitive */
+  .bezel {
+    background: var(--bone);
+    border: 1px solid var(--border-light);
+    border-radius: 22px;
+    padding: 8px;
+    box-shadow: 0 18px 46px rgba(20, 20, 19, 0.06);
+  }
+  .bezel-core {
+    background: #FFFFFF;
+    border: 1px solid rgba(223, 220, 210, 0.72);
+    border-radius: 15px;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+  .stage.dark .bezel {
+    background: var(--carbon-card);
+    border-color: var(--border-dark);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  }
+  .stage.dark .bezel-core {
+    background: var(--carbon-soft);
+    border-color: rgba(217, 119, 87, 0.24);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--terra);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .ch-title {
+    font-family: var(--serif);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.14;
+    color: var(--carbon);
+  }
+  .stage.dark .ch-title { color: var(--parchment); }
+  .ch-sub {
+    font-size: 24px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+    margin-top: 10px;
+  }
+  .stage.dark .ch-sub { color: var(--stone); }
+
+  /* TEMPLATE 1: title_hook */
+  .tpl-title {
+    display: grid;
+    grid-template-columns: 1.25fr 0.75fr;
+    gap: 54px;
+    align-items: center;
+    height: 100%;
+  }
+  .title-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    background: var(--bone);
+    border: 1px solid var(--border-light);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--carbon);
+    margin-bottom: 24px;
+  }
+  .title-stats {
+    display: flex;
+    gap: 14px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .stat-chip {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    background: #FFFFFF;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .roadmap-list {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .roadmap-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    border-radius: 12px;
+    background: var(--parchment);
+    border: 1px solid var(--border-light);
+  }
+  .roadmap-row.current {
+    border-color: var(--terra);
+    background: #FFF7F4;
+  }
+  .roadmap-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--terra);
+  }
+  .roadmap-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--carbon);
+  }
+
+  /* TEMPLATE 2: quote_highlight */
+  .tpl-quote {
+    display: grid;
+    grid-template-columns: 1.35fr 0.65fr;
+    gap: 44px;
+    align-items: center;
+    height: 100%;
+  }
+  .quote-card {
+    padding: 46px 52px;
+    position: relative;
+  }
+  .quote-mark {
+    font-family: var(--serif);
+    font-size: 84px;
+    line-height: 0.7;
+    color: var(--terra);
+    margin-bottom: 18px;
+  }
+  .quote-body {
+    font-family: var(--serif);
+    font-size: 42px;
+    line-height: 1.48;
+    color: var(--carbon);
+    letter-spacing: -0.015em;
+  }
+  .hl-span {
+    background-color: transparent;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background-image: linear-gradient(var(--terra-wash), var(--terra-wash));
+    background-repeat: no-repeat;
+    background-position: left center;
+    background-size: 0% 100%;
+    color: var(--carbon);
+    font-weight: 700;
+  }
+  .quote-source {
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-light);
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .marginalia-box {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .note-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--parchment);
+    border: 1px solid var(--border-light);
+    font-size: 19px;
+    line-height: 1.48;
+    color: var(--carbon);
+  }
+  .note-bullet {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--terra);
+    margin-top: 9px;
+    flex-shrink: 0;
+  }
+
+  /* TEMPLATE 3: architecture_flow */
+  .tpl-arch {
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    height: 100%;
+    justify-content: center;
+  }
+  .arch-track {
+    display: flex;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .arch-node-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .arch-card {
+    height: 360px;
+    border-radius: 20px;
+    background: var(--bone);
+    border: 1px solid var(--border-light);
+    padding: 8px;
+    box-shadow: 0 14px 34px rgba(20, 20, 19, 0.05);
+  }
+  .arch-card.active {
+    background: #FFF6F2;
+    border: 2px solid var(--terra);
+    box-shadow: 0 22px 52px rgba(217, 119, 87, 0.18);
+  }
+  .arch-card-core {
+    height: 100%;
+    background: #FFFFFF;
+    border: 1px solid rgba(223, 220, 210, 0.7);
+    border-radius: 14px;
+    padding: 26px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .arch-step-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .arch-num {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--terra);
+  }
+  .arch-pill {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--bone);
+    color: var(--ink-muted);
+  }
+  .arch-card.active .arch-pill {
+    background: var(--terra);
+    color: #FFFDF9;
+  }
+  .arch-name {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--carbon);
+    margin: 14px 0 10px;
+    line-height: 1.25;
+  }
+  .arch-desc {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink-muted);
+  }
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    flex-shrink: 0;
+  }
+
+  /* TEMPLATE 4: code_walkthrough */
+  .tpl-code {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 38px;
+    align-items: stretch;
+    height: 670px;
+  }
+  .code-window {
+    background: var(--carbon);
+    border: 1px solid var(--border-dark);
+    border-radius: 20px;
+    padding: 8px;
+    box-shadow: 0 26px 64px rgba(20, 20, 19, 0.16);
+    display: flex;
+    flex-direction: column;
+  }
+  .code-inner {
+    flex: 1;
+    background: #1A1917;
+    border: 1px solid var(--border-dark);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .code-topbar {
+    height: 44px;
+    background: #141413;
+    border-bottom: 1px solid var(--border-dark);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--stone);
+  }
+  .code-dots { display: flex; gap: 7px; }
+  .code-dots i { width: 9px; height: 9px; border-radius: 50%; background: #3E3B36; display: block; }
+  .code-dots i:first-child { background: var(--terra); }
+  .code-body {
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--mono);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .code-line {
+    display: grid;
+    grid-template-columns: 54px 1fr;
+    padding: 2px 22px 2px 12px;
+    color: var(--parchment);
+    border-left: 3px solid transparent;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .code-line.focus {
+    background: rgba(217, 119, 87, 0.16);
+    border-left-color: var(--terra);
+  }
+  .code-ln {
+    color: #6B675E;
+    text-align: right;
+    padding-right: 16px;
+    user-select: none;
+  }
+  .code-line.focus .code-ln { color: var(--terra); font-weight: 700; }
+
+  .code-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: center;
+  }
+  .anno-card {
+    padding: 22px 24px;
+    border-radius: 16px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    opacity: 0.56;
+  }
+  .anno-card.active {
+    opacity: 1;
+    border-color: var(--terra);
+    background: #FFF9F6;
+    box-shadow: 0 14px 32px rgba(217, 119, 87, 0.12);
+  }
+  .anno-tag {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--terra);
+    margin-bottom: 6px;
+  }
+  .anno-head {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--carbon);
+    margin-bottom: 6px;
+  }
+  .anno-desc {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+
+  /* TEMPLATE 5: comparison_bento */
+  .tpl-bento {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    height: 100%;
+    justify-content: center;
+  }
+  .bento-grid {
+    display: grid;
+    gap: 22px;
+  }
+  .bento-card {
+    padding: 28px 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    height: 440px;
+  }
+  .bento-metric-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .bento-metric {
+    font-family: var(--serif);
+    font-size: 56px;
+    font-weight: 700;
+    color: var(--carbon);
+    letter-spacing: -0.03em;
+  }
+  .bento-metric.winner { color: var(--terra); }
+  .bento-unit {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink-muted);
+  }
+  .bar-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--bone);
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--sage);
+    width: 0%;
+  }
+  .bar-fill.winner { background: var(--terra); }
+  .bento-pts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--carbon);
+  }
+  .bento-pt {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .bento-pt::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--terra);
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+
+  /* TEMPLATE 6: summary_takeaway */
+  .tpl-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    height: 100%;
+    justify-content: center;
+  }
+  .takeaway-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .tk-card {
+    padding: 28px;
+    height: 310px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .tk-num {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--terra);
+    font-weight: 700;
+  }
+  .tk-head {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--parchment);
+    line-height: 1.3;
+    margin: 12px 0;
+  }
+  .tk-body {
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--stone);
+  }
+  .cta-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    align-self: flex-start;
+    background: var(--terra);
+    color: #FFFDF9;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="grid-bg"></div>
+  <svg class="paper-grain" width="100%" height="100%">
+    <filter id="grainF"><feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" stitchTiles="stitch"/></filter>
+    <rect width="100%" height="100%" filter="url(#grainF)"/>
+  </svg>
+
+  <header class="top-chrome">
+    <div class="top-row">
+      <div class="series-tag">
+        <span class="series-dot"></span>
+        <span id="top-series">LONG-FORM ARTICLE EXPLAINER</span>
+      </div>
+      <div class="chapter-pills" id="top-pills"></div>
+    </div>
+    <div class="top-progress-track">
+      <div class="top-progress-fill" id="top-prog-fill"></div>
+    </div>
+  </header>
+
+  <main class="canvas-safe" id="canvas-safe"></main>
+
+  <footer class="bottom-narrator">
+    <div class="bottom-narrator-core">
+      <div class="wave-box">
+        <div class="voice-badge"><span class="voice-dot"></span><span>VOICE</span></div>
+        <div class="wave-bars" id="bottom-waves"></div>
+      </div>
+      <div class="subtitle-text" id="bottom-sub"></div>
+      <div class="time-meta">
+        <span id="bottom-ch-badge">CH 01 / 06</span>
+        <span id="bottom-clock">00:00 / 00:00</span>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<script>
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const easeOutCubic = x => 1 - Math.pow(1 - clamp01(x), 3);
+
+function spring(t, stiffness = 190, damping = 22) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(stiffness);
+  const zeta = damping / (2 * w0);
+  if (zeta < 1) {
+    const wd = w0 * Math.sqrt(1 - zeta * zeta);
+    const env = Math.exp(-zeta * w0 * t);
+    return 1 - env * (Math.cos(wd * t) + (zeta * w0 / wd) * Math.sin(wd * t));
+  }
+  return 1 - (1 + w0 * t) * Math.exp(-w0 * t);
+}
+
+function fmtClock(sec) {
+  const s = Math.max(0, Math.floor(sec));
+  const mm = String(Math.floor(s / 60)).padStart(2, "0");
+  const ss = String(s % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
+}
+
+function escapeHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Pre-build 28 voice bars once
+const waveContainer = document.getElementById("bottom-waves");
+const waveBars = [];
+for (let i = 0; i < 28; i++) {
+  const d = document.createElement("div");
+  d.className = "wbar" + (i % 5 === 0 ? " sage" : "");
+  waveContainer.appendChild(d);
+  waveBars.push(d);
+}
+
+let projectMeta = { series_title: "EDITORIAL EXPLAINER", chapters: [] };
+let lastChIdx = -1;
+
+window.initExplainer = function(meta) {
+  projectMeta = meta || projectMeta;
+  document.getElementById("top-series").textContent = projectMeta.series_title || "EDITORIAL EXPLAINER";
+  const pillsBox = document.getElementById("top-pills");
+  pillsBox.innerHTML = "";
+  const chs = projectMeta.chapters || [];
+  const maxShow = 7;
+  chs.slice(0, maxShow).forEach((ch, idx) => {
+    const span = document.createElement("span");
+    span.className = "ch-pill";
+    span.id = `ch-pill-${idx}`;
+    const shortTitle = (ch.short_title || ch.title || `Ch ${idx + 1}`).slice(0, 12);
+    span.textContent = `${String(idx + 1).padStart(2, "0")} ${shortTitle}`;
+    pillsBox.appendChild(span);
+  });
+  lastChIdx = -1;
+};
+
+function buildChapterDOM(ch) {
+  const host = document.getElementById("canvas-safe");
+  const tpl = ch.layout || "title_hook";
+
+  if (tpl === "title_hook") {
+    const roadRows = (ch.roadmap || projectMeta.chapters.map(c => c.title || c.short_title)).slice(0, 5);
+    host.innerHTML = `
+      <div class="tpl-title">
+        <div id="anim-main">
+          <div class="title-badge">${escapeHtml(ch.badge || "DEEP READING · ARTICLE EXPLAINER")}</div>
+          <h1 class="ch-title" style="font-size: 74px;">${escapeHtml(ch.title)}</h1>
+          <p class="ch-sub" style="font-size: 26px;">${escapeHtml(ch.subtitle || "")}</p>
+          <div class="title-stats">
+            ${(ch.meta_chips || []).map(m => `<span class="stat-chip">${escapeHtml(m)}</span>`).join("")}
+          </div>
+        </div>
+        <div class="bezel" id="anim-side">
+          <div class="bezel-core roadmap-list">
+            <div class="eyebrow" style="margin-bottom: 4px;">CHAPTER ROADMAP</div>
+            ${roadRows.map((rt, ri) => `
+              <div class="roadmap-row ${ri === 0 ? "current" : ""}" id="rm-row-${ri}">
+                <span class="roadmap-num">${String(ri + 1).padStart(2, "0")}</span>
+                <span class="roadmap-label">${escapeHtml(rt)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>`;
+  } else if (tpl === "quote_highlight") {
+    const parts = ch.quote_parts || [{ text: ch.quote || ch.subtitle || "", highlight: true }];
+    let hlCounter = 0;
+    const quoteHtml = parts.map(p => {
+      if (p.highlight) {
+        const hid = hlCounter++;
+        return `<mark class="hl-span" data-hl="${hid}">${escapeHtml(p.text)}</mark>`;
+      }
+      return escapeHtml(p.text);
+    }).join("");
+    const notes = ch.bullets || [];
+    host.innerHTML = `
+      <div class="tpl-quote">
+        <div class="bezel" id="anim-main">
+          <div class="bezel-core quote-card">
+            <div class="eyebrow">${escapeHtml(ch.eyebrow || "ORIGINAL EXCERPT · KEY INSIGHT")}</div>
+            <div class="quote-mark">“</div>
+            <div class="quote-body">${quoteHtml}</div>
+            <div class="quote-source">
+              <span>${escapeHtml(ch.source_label || projectMeta.series_title)}</span>
+              <span>HIGHLIGHTED IN NARRATION</span>
+            </div>
+          </div>
+        </div>
+        <div class="bezel" id="anim-side">
+          <div class="bezel-core marginalia-box">
+            <div class="eyebrow" style="margin-bottom: 2px;">${escapeHtml(ch.side_title || "CORE INTERPRETATION")}</div>
+            ${notes.slice(0, 4).map((b, bi) => `
+              <div class="note-item" id="q-note-${bi}">
+                <span class="note-bullet"></span>
+                <span>${escapeHtml(b)}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>`;
+  } else if (tpl === "architecture_flow") {
+    const steps = (ch.steps || []).slice(0, 4);
+    host.innerHTML = `
+      <div class="tpl-arch">
+        <div>
+          <div class="eyebrow">${escapeHtml(ch.eyebrow || "SYSTEM ARCHITECTURE · PIPELINE")}</div>
+          <h2 class="ch-title" style="font-size: 52px;">${escapeHtml(ch.title)}</h2>
+          ${ch.subtitle ? `<p class="ch-sub" style="font-size: 22px;">${escapeHtml(ch.subtitle)}</p>` : ""}
+        </div>
+        <div class="arch-track">
+          ${steps.map((st, si) => `
+            <div class="arch-node-wrap">
+              <div class="arch-card" id="arch-card-${si}">
+                <div class="arch-card-core">
+                  <div class="arch-step-top">
+                    <span class="arch-num">STEP ${String(si + 1).padStart(2, "0")}</span>
+                    <span class="arch-pill">${escapeHtml(st.tag || "STAGE")}</span>
+                  </div>
+                  <div>
+                    <div class="arch-name">${escapeHtml(st.title)}</div>
+                    <div class="arch-desc">${escapeHtml(st.desc || "")}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            ${si < steps.length - 1 ? `
+              <div class="arch-arrow">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97757" stroke-width="2.2">
+                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                </svg>
+              </div>` : ""}
+          `).join("")}
+        </div>
+      </div>`;
+  } else if (tpl === "code_walkthrough") {
+    const lines = (ch.code_lines || []).slice(0, 14);
+    const annos = (ch.annotations || []).slice(0, 4);
+    host.innerHTML = `
+      <div class="tpl-code">
+        <div class="code-window" id="anim-main">
+          <div class="code-inner">
+            <div class="code-topbar">
+              <div class="code-dots"><i></i><i></i><i></i></div>
+              <span>${escapeHtml(ch.code_filename || "pipeline.py")}</span>
+              <span>${escapeHtml(ch.code_lang || "PYTHON / SPEC")}</span>
+            </div>
+            <div class="code-body">
+              ${lines.map((ln, li) => `
+                <div class="code-line" id="code-ln-${li + 1}">
+                  <span class="code-ln">${li + 1}</span>
+                  <span>${escapeHtml(ln)}</span>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+        <div class="code-notes" id="anim-side">
+          <div>
+            <div class="eyebrow">${escapeHtml(ch.eyebrow || "CODE & LOGIC WALKTHROUGH")}</div>
+            <h2 class="ch-title" style="font-size: 40px;">${escapeHtml(ch.title)}</h2>
+          </div>
+          ${annos.map((an, ai) => `
+            <div class="anno-card" id="anno-card-${ai}">
+              <div class="anno-tag">${escapeHtml(an.line_label || `FOCUS ${ai + 1}`)}</div>
+              <div class="anno-head">${escapeHtml(an.heading)}</div>
+              <div class="anno-desc">${escapeHtml(an.body)}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+  } else if (tpl === "comparison_bento") {
+    const items = (ch.items || []).slice(0, 4);
+    const cols = Math.max(2, items.length);
+    host.innerHTML = `
+      <div class="tpl-bento">
+        <div>
+          <div class="eyebrow">${escapeHtml(ch.eyebrow || "BENCHMARK & COMPARISON")}</div>
+          <h2 class="ch-title" style="font-size: 50px;">${escapeHtml(ch.title)}</h2>
+          ${ch.subtitle ? `<p class="ch-sub" style="font-size: 22px;">${escapeHtml(ch.subtitle)}</p>` : ""}
+        </div>
+        <div class="bento-grid" style="grid-template-columns: repeat(${cols}, 1fr);">
+          ${items.map((it, ii) => `
+            <div class="bezel" id="bento-card-${ii}">
+              <div class="bezel-core bento-card">
+                <div>
+                  <div class="eyebrow" style="color: ${it.winner ? "var(--terra)" : "var(--ink-muted)"};">${escapeHtml(it.tag || `OPTION 0${ii + 1}`)}</div>
+                  <div style="font-size: 26px; font-weight: 700; color: var(--carbon); margin-bottom: 14px;">${escapeHtml(it.title)}</div>
+                  <div class="bento-metric-row">
+                    <span class="bento-metric ${it.winner ? "winner" : ""}">${escapeHtml(it.metric_value || "")}</span>
+                    <span class="bento-unit">${escapeHtml(it.unit || "")}</span>
+                  </div>
+                  <div class="bar-track" style="margin-top: 12px;">
+                    <div class="bar-fill ${it.winner ? "winner" : ""}" id="bento-bar-${ii}"></div>
+                  </div>
+                </div>
+                <div class="bento-pts">
+                  ${(it.points || []).slice(0, 3).map(pt => `<div class="bento-pt"><span>${escapeHtml(pt)}</span></div>`).join("")}
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>`;
+  } else {
+    // summary_takeaway (dark warm carbon)
+    const takes = (ch.takeaways || []).slice(0, 3);
+    host.innerHTML = `
+      <div class="tpl-summary">
+        <div>
+          <div class="eyebrow">${escapeHtml(ch.eyebrow || "KEY TAKEAWAYS · ACTION CHECKLIST")}</div>
+          <h2 class="ch-title" style="font-size: 58px;">${escapeHtml(ch.title)}</h2>
+        </div>
+        <div class="takeaway-grid">
+          ${takes.map((tk, ti) => `
+            <div class="bezel" id="tk-card-${ti}">
+              <div class="bezel-core tk-card">
+                <div>
+                  <div class="tk-num">${String(ti + 1).padStart(2, "0")}</div>
+                  <div class="tk-head">${escapeHtml(tk.heading)}</div>
+                </div>
+                <div class="tk-body">${escapeHtml(tk.body || "")}</div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="cta-banner" id="tk-cta">
+          <span>${escapeHtml(ch.cta || projectMeta.cta_text || "订阅频道 · 查看完整原文")}</span>
+        </div>
+      </div>`;
+  }
+}
+
+window.renderExplainerFrame = function(state) {
+  const chIdx = state.chapterIndex || 0;
+  const ch = (projectMeta.chapters || [])[chIdx] || {};
+  const lt = state.chapterTime || 0;
+  const cp = clamp01(state.chapterProgress || 0);
+
+  // Toggle light parchment vs dark carbon mode seamlessly
+  const stageEl = document.getElementById("stage");
+  stageEl.classList.toggle("dark", (ch.layout || "") === "summary_takeaway");
+
+  // Update top pills & overall progress bar
+  const chLen = (projectMeta.chapters || []).length;
+  for (let i = 0; i < Math.min(7, chLen); i++) {
+    const p = document.getElementById(`ch-pill-${i}`);
+    if (!p) continue;
+    p.classList.toggle("active", i === chIdx);
+    p.classList.toggle("done", i < chIdx);
+  }
+  document.getElementById("top-prog-fill").style.width = `${(clamp01(state.globalProgress || 0) * 100).toFixed(2)}%`;
+
+  // Update bottom narrator waveform, subtitle, and timecode
+  const rms = clamp01(state.rms ?? 0.3);
+  const gt = state.globalTime || 0;
+  for (let i = 0; i < waveBars.length; i++) {
+    const shape = 0.25 + 0.75 * Math.abs(Math.sin(i * 0.45 + gt * 11.0) * Math.cos(i * 0.19 - gt * 4.2));
+    waveBars[i].style.height = `${Math.round(6 + 28 * rms * shape)}px`;
+  }
+  document.getElementById("bottom-sub").textContent = state.subtitle || "";
+  document.getElementById("bottom-ch-badge").textContent = `CH ${String(chIdx + 1).padStart(2, "0")} / ${String(Math.max(1, chLen)).padStart(2, "0")}`;
+  document.getElementById("bottom-clock").textContent = `${fmtClock(gt)} / ${fmtClock(state.totalDuration || 0)}`;
+
+  // Rebuild DOM only when switching chapters
+  if (chIdx !== lastChIdx) {
+    buildChapterDOM(ch);
+    lastChIdx = chIdx;
+  }
+
+  // Per-template frame-accurate physics animations
+  const tpl = ch.layout || "title_hook";
+  if (tpl === "title_hook") {
+    const m = document.getElementById("anim-main");
+    const s = document.getElementById("anim-side");
+    const mp = spring(lt - 0.08, 175, 22);
+    const sp = spring(lt - 0.28, 175, 22);
+    if (m) { m.style.opacity = String(clamp01(mp)); m.style.transform = `translate3d(0, ${(1 - mp) * 26}px, 0)`; }
+    if (s) { s.style.opacity = String(clamp01(sp)); s.style.transform = `translate3d(0, ${(1 - sp) * 26}px, 0)`; }
+    const rows = document.querySelectorAll(".roadmap-row");
+    const stepIdx = Math.min(rows.length - 1, Math.floor(cp * rows.length));
+    rows.forEach((r, ri) => r.classList.toggle("current", ri === stepIdx));
+  } else if (tpl === "quote_highlight") {
+    const m = document.getElementById("anim-main");
+    const s = document.getElementById("anim-side");
+    const mp = spring(lt - 0.05, 185, 22);
+    const sp = spring(lt - 0.22, 185, 22);
+    if (m) { m.style.opacity = String(clamp01(mp)); m.style.transform = `translate3d(0, ${(1 - mp) * 20}px, 0)`; }
+    if (s) { s.style.opacity = String(clamp01(sp)); s.style.transform = `translate3d(0, ${(1 - sp) * 20}px, 0)`; }
+    const hls = document.querySelectorAll(".hl-span");
+    hls.forEach((el, hi) => {
+      const startP = 0.08 + (hi / Math.max(1, hls.length)) * 0.55;
+      const fill = easeOutCubic((cp - startP) / 0.28);
+      el.style.backgroundSize = `${Math.round(fill * 100)}% 100%`;
+    });
+    const notes = document.querySelectorAll(".note-item");
+    notes.forEach((n, ni) => {
+      const np = spring(lt - 0.45 - ni * 0.35, 195, 23);
+      n.style.opacity = String(clamp01(np));
+      n.style.transform = `translate3d(${(1 - np) * 18}px, 0, 0)`;
+    });
+  } else if (tpl === "architecture_flow") {
+    const cards = document.querySelectorAll(".arch-card");
+    const activeIdx = Math.min(cards.length - 1, Math.floor(cp * cards.length));
+    cards.forEach((c, ci) => {
+      const sp = spring(lt - 0.10 - ci * 0.14, 185, 22);
+      const lift = ci === activeIdx ? -10 : 0;
+      c.classList.toggle("active", ci === activeIdx);
+      c.style.opacity = String(clamp01(sp));
+      c.style.transform = `translate3d(0, ${(1 - sp) * 28 + lift}px, 0)`;
+    });
+  } else if (tpl === "code_walkthrough") {
+    const m = document.getElementById("anim-main");
+    if (m) {
+      const mp = spring(lt - 0.05, 190, 23);
+      m.style.opacity = String(clamp01(mp));
+      m.style.transform = `translate3d(0, ${(1 - mp) * 20}px, 0)`;
+    }
+    const annos = ch.annotations || [];
+    const activeIdx = Math.min(Math.max(0, annos.length - 1), Math.floor(cp * Math.max(1, annos.length)));
+    const focusRange = (annos[activeIdx] && annos[activeIdx].lines) || [1, 3];
+    const lineEls = document.querySelectorAll(".code-line");
+    lineEls.forEach((el, li) => {
+      const ln = li + 1;
+      el.classList.toggle("focus", ln >= focusRange[0] && ln <= focusRange[1]);
+    });
+    document.querySelectorAll(".anno-card").forEach((ac, ai) => {
+      ac.classList.toggle("active", ai === activeIdx);
+    });
+  } else if (tpl === "comparison_bento") {
+    const items = ch.items || [];
+    items.forEach((it, ii) => {
+      const card = document.getElementById(`bento-card-${ii}`);
+      const bar = document.getElementById(`bento-bar-${ii}`);
+      const sp = spring(lt - 0.12 - ii * 0.16, 185, 22);
+      if (card) {
+        card.style.opacity = String(clamp01(sp));
+        card.style.transform = `translate3d(0, ${(1 - sp) * 26}px, 0)`;
+      }
+      if (bar) {
+        const bp = easeOutCubic((lt - 0.35 - ii * 0.16) / 0.85);
+        bar.style.width = `${Math.round((it.metric_pct || 60) * bp)}%`;
+      }
+    });
+  } else {
+    // summary_takeaway
+    const takes = ch.takeaways || [];
+    takes.forEach((_, ti) => {
+      const c = document.getElementById(`tk-card-${ti}`);
+      const sp = spring(lt - 0.12 - ti * 0.22, 185, 22);
+      if (c) {
+        c.style.opacity = String(clamp01(sp));
+        c.style.transform = `translate3d(0, ${(1 - sp) * 24}px, 0)`;
+      }
+    });
+    const cta = document.getElementById("tk-cta");
+    if (cta) {
+      const cpBtn = spring(lt - 0.85, 195, 22);
+      cta.style.opacity = String(clamp01(cpBtn));
+      cta.style.transform = `translate3d(0, ${(1 - cpBtn) * 16}px, 0)`;
+    }
+  }
+};
+</script>
+</body>
+</html>

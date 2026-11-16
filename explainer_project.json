@@ -1,0 +1,198 @@
+{
+  "series_title": "EDITORIAL DEEP DIVE · LONG-FORM EXPLAINER",
+  "cta_text": "关注频道 · 获取完整原文精读模板",
+  "tts": {
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "mode": "auto"
+  },
+  "format": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 24
+  },
+  "chapters": [
+    {
+      "id": "ch_01",
+      "layout": "title_hook",
+      "short_title": "导读破题",
+      "badge": "DEEP READING · ARTICLE EXPLAINER",
+      "title": "为什么大多数 AI 视频一眼假？核心工程解法拆解",
+      "subtitle": "从「冷蓝霓虹抽卡」走向 Anthropic 原教旨暖纸矢量叙事与语音驱动时间轴",
+      "meta_chips": [
+        "6 CHAPTERS",
+        "AUDIO-DRIVEN TIMELINE",
+        "ZERO-BLUE PALETTE"
+      ],
+      "spoken_text": "为什么大多数 AI 生成的讲解视频总有一股廉价塑料味？今天我们用五分钟，把文章里的核心工程答案一次讲透。"
+    },
+    {
+      "id": "ch_02",
+      "layout": "quote_highlight",
+      "short_title": "原文洞察",
+      "eyebrow": "ORIGINAL EXCERPT · CORE INSIGHT",
+      "source_label": "《去 AI 味视频工程指南》· 第一节",
+      "quote_parts": [
+        {
+          "text": "视觉廉价感往往源于 ",
+          "highlight": false
+        },
+        {
+          "text": "暗夜深蓝叠加霓虹描边，",
+          "highlight": true
+        },
+        {
+          "text": "而真正耐看的技术讲解依靠 ",
+          "highlight": false
+        },
+        {
+          "text": "暖棉纸底板、精确字体层级与随声音推进的节奏留白。",
+          "highlight": true
+        }
+      ],
+      "side_title": "三大关键结论",
+      "bullets": [
+        "75% 篇幅采用 #FAF9F5 暖棉纸，克制使用 #141413 暖碳黑反差",
+        "彻底清零冷青紫光晕，只留陶土橘 #D97757 作为焦点指示色",
+        "先出旁白音频，再按音频帧数反向锁定每一幕的弹簧时长"
+      ],
+      "spoken_text": "原文直接指出问题根源：深蓝夜景配合霓虹线条最容易显得廉价；耐看的深度解读靠暖棉纸底板、精密排版以及随语音同步高亮的留白节奏。"
+    },
+    {
+      "id": "ch_03",
+      "layout": "architecture_flow",
+      "short_title": "架构拆解",
+      "title": "语音驱动长视频的四步流水线",
+      "subtitle": "不限章节数量，讲一分钟还是二十分钟都零音画漂移",
+      "steps": [
+        {
+          "tag": "PARSE",
+          "title": "长文拆章",
+          "desc": "读取 Markdown 段落与代码块，自动匹配 6 套暖调排版模板"
+        },
+        {
+          "tag": "VOICE",
+          "title": "神经语音合成",
+          "desc": "逐章生成高自然度旁白并抽出每帧 RMS 声浪包络与字幕分句"
+        },
+        {
+          "tag": "VECTOR",
+          "title": "Chrome 矢量渲染",
+          "desc": "无头浏览器按音频精确帧数驱动弹簧动效，杜绝边缘锯齿"
+        },
+        {
+          "tag": "MIX",
+          "title": "侧链闪避混音",
+          "desc": "FFmpeg 将人声、112 BPM 环境律动与转场提示音精准合并"
+        }
+      ],
+      "spoken_text": "这套长视频流水线只有四步：第一步按 Markdown 自动拆章；第二步合成语音并锁定帧数；第三步由浏览器矢量引擎逐帧渲染；第四步完成侧链混音。"
+    },
+    {
+      "id": "ch_04",
+      "layout": "code_walkthrough",
+      "short_title": "代码精讲",
+      "title": "按音频精确锁定视频帧数",
+      "code_filename": "explainer_studio.py",
+      "code_lang": "PYTHON 3.10",
+      "code_lines": [
+        "for idx, ch in enumerate(chapters):",
+        "    synthesize_chapter_wav(ch['spoken_text'], wav_path)",
+        "    dur_sec = get_duration(wav_path)",
+        "    n_frames = max(1, int(round(dur_sec * FPS)))",
+        "    rms_env = extract_rms_envelope(wav_path, n_frames, FPS)",
+        "    clauses = split_subtitle_clauses(ch['spoken_text'], dur_sec)",
+        "    for f in range(n_frames):",
+        "        page.evaluate('renderExplainerFrame', state)",
+        "        pipe.stdin.write(page.screenshot(type='jpeg'))"
+      ],
+      "annotations": [
+        {
+          "lines": [
+            2,
+            4
+          ],
+          "line_label": "LINE 2-4 · 音画同步锁",
+          "heading": "先算语音时长，再定渲染帧数",
+          "body": "不再写死 9 秒时长，读完音频真实秒数后直接决定渲染多少帧。"
+        },
+        {
+          "lines": [
+            5,
+            6
+          ],
+          "line_label": "LINE 5-6 · 声浪与分句",
+          "heading": "实测声波 + 标点分句字幕",
+          "body": "抽出每帧 RMS 音量振幅驱动底部 28 根声浪柱，同步高亮字幕。"
+        },
+        {
+          "lines": [
+            7,
+            9
+          ],
+          "line_label": "LINE 7-9 · 零落盘直出",
+          "heading": "浏览器内存管道直推 FFmpeg",
+          "body": "无头 Chrome 截帧通过标准输入管道直写 H.264，支持任意长视频。"
+        }
+      ],
+      "spoken_text": "看核心代码：第 2 到 4 行先合成每章语音再反推帧数；第 5 行提取声波和字幕分句；第 7 到 9 行直接用管道把浏览器矢量帧推给 FFmpeg 编码。"
+    },
+    {
+      "id": "ch_05",
+      "layout": "comparison_bento",
+      "short_title": "方案对比",
+      "title": "短平快口播 vs 长文精读工作流",
+      "subtitle": "双引擎各自负责最擅长的场景",
+      "items": [
+        {
+          "tag": "LEGACY SHORT",
+          "title": "旧版口播模式",
+          "metric_value": "45s",
+          "unit": "MAX OPTIMAL",
+          "metric_pct": 35,
+          "winner": false,
+          "points": [
+            "依赖 Google Flow 网页逐段生成底片",
+            "适合 3~5 段今日热点速报",
+            "高密真人口播适合前 30 秒吸睛"
+          ]
+        },
+        {
+          "tag": "EXPLAINER MODE",
+          "title": "新版长文讲解引擎",
+          "metric_value": "∞",
+          "unit": "1–20+ MIN UNLIMITED",
+          "metric_pct": 94,
+          "winner": true,
+          "points": [
+            "单篇 Markdown 直接拆解为 N 章长视频",
+            "支持引用划重点、架构流程图、代码逐行聚焦",
+            "零等待本地语音合成 + 0% 冷蓝矢量排版"
+          ]
+        }
+      ],
+      "spoken_text": "对比旧版口播与新版长文引擎：口播模式适合三十秒资讯开场，而新版讲解引擎支持不限章节长度、代码聚焦与图解卡片，轻松做出高质量深度长视频。"
+    },
+    {
+      "id": "ch_06",
+      "layout": "summary_takeaway",
+      "short_title": "总结清单",
+      "title": "一句指令，把任意文章变成深度视频",
+      "takeaways": [
+        {
+          "heading": "直接丢 Markdown 或文章",
+          "body": "运行 from-markdown 或直接发一段文章给我，自动拆成 6 套排版章节。"
+        },
+        {
+          "heading": "零冷蓝 AI 味彻底清零",
+          "body": "全程遵循暖棉纸、暖碳黑、陶土橘与阻尼弹簧运动物理规律。"
+        },
+        {
+          "heading": "音画永远严丝合缝",
+          "body": "旁白多长，单章就精确铺满多少帧，再也不怕长视频音画不同步。"
+        }
+      ],
+      "cta": "尝试对 AI 说：把这篇文章做成讲解视频",
+      "spoken_text": "总结三条：你可以直接丢一篇文章运行转换命令，全片保持暖棉纸零冷蓝质感，并且每一章都严格锁定语音时长。快去试试看吧。"
+    }
+  ]
+}

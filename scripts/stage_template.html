@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080, initial-scale=1.0" />
+<title>Introducing Glint</title>
+<style>
+  :root {
+    --parchment: #FAF9F5;
+    --bone: #F3F1EA;
+    --sand: #EAE6DC;
+    --border-light: #DFDCD2;
+    --carbon: #141413;
+    --espresso: #1C1B19;
+    --border-dark: #2E2D2A;
+    --ink-muted: #6E6C66;
+    --ink-muted-dark: #A5A29A;
+    --terra: #D97757;
+    --terra-soft: #F6E5DF;
+    --sage: #788C5D;
+    --sage-soft: #E9EFE2;
+    --serif: Georgia, "Songti SC", "STSong", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
+    --mono: "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--parchment);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    color: var(--carbon);
+  }
+
+  /* Subtle physical paper grain overlay */
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 90;
+    opacity: 0.032;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage {
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+  }
+
+  .beat {
+    position: absolute;
+    inset: 0;
+    display: none;
+    padding: 88px 96px;
+  }
+  .beat.active { display: block; }
+
+  /* Architectural grid & registration hairlines */
+  .arch-frame {
+    position: absolute;
+    inset: 34px;
+    border: 1px solid var(--border-light);
+    pointer-events: none;
+  }
+  .dark .arch-frame { border-color: var(--border-dark); }
+  .terra-sheet .arch-frame { border-color: rgba(20, 20, 19, 0.25); }
+
+  .hud {
+    position: absolute;
+    top: 52px;
+    left: 60px;
+    right: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 20;
+  }
+  .hud-left { display: flex; align-items: center; gap: 12px; }
+  .hud-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--terra); }
+  .hud-right { opacity: 0.55; font-size: 14px; }
+
+  /* Double-Bezel physical hardware container */
+  .bezel {
+    background: var(--sand);
+    border: 1px solid var(--border-light);
+    border-radius: 26px;
+    padding: 8px;
+    box-shadow: 0 24px 60px rgba(20, 20, 19, 0.06);
+  }
+  .bezel-core {
+    background: #FFFFFF;
+    border: 1px solid rgba(20, 20, 19, 0.05);
+    border-radius: 19px;
+    overflow: hidden;
+  }
+  .dark .bezel {
+    background: #1E1D1B;
+    border-color: var(--border-dark);
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.45);
+  }
+  .dark .bezel-core {
+    background: var(--espresso);
+    border-color: rgba(255, 255, 255, 0.04);
+  }
+
+  /* Physical keycaps */
+  kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    height: 46px;
+    padding: 0 16px;
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: var(--carbon);
+    border: 1px solid #D5D1C5;
+    box-shadow: 0 5px 0 #D5D1C5, 0 8px 18px rgba(20, 20, 19, 0.08);
+    transition: none;
+  }
+  kbd.pressed {
+    transform: translate3d(0, 4px, 0);
+    border-color: var(--terra);
+    color: var(--terra);
+    box-shadow: 0 1px 0 var(--terra), 0 0 0 4px rgba(217, 119, 87, 0.16);
+  }
+  .dark kbd {
+    background: #272522;
+    color: var(--parchment);
+    border-color: #3D3B36;
+    box-shadow: 0 5px 0 #0D0D0C, 0 10px 24px rgba(0, 0, 0, 0.5);
+  }
+  .dark kbd.pressed {
+    transform: translate3d(0, 4px, 0);
+    border-color: var(--terra);
+    color: var(--terra);
+    box-shadow: 0 1px 0 var(--terra), 0 0 0 4px rgba(217, 119, 87, 0.22);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    color: var(--terra);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .display-zh {
+    font-family: var(--serif);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .display-serif {
+    font-family: Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
+  }
+
+  /* BEAT 1: Manifesto + Convergence */
+  #beat1 { background: var(--parchment); }
+  .b1-manifesto {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .b1-sub {
+    font-size: 32px;
+    color: var(--ink-muted);
+    margin-bottom: 24px;
+    letter-spacing: 0.01em;
+  }
+  .b1-h1 {
+    font-size: 84px;
+    color: var(--carbon);
+  }
+  .pill-terra {
+    display: inline-block;
+    background: var(--terra);
+    color: #FFFDF9;
+    padding: 4px 26px 8px;
+    border-radius: 18px;
+    margin: 0 6px;
+  }
+  .b1-tile {
+    position: absolute;
+    width: 158px;
+    padding: 18px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: var(--sand);
+    border: 1px solid var(--border-light);
+    border-radius: 22px;
+    box-shadow: 0 16px 36px rgba(20, 20, 19, 0.05);
+  }
+  .b1-tile-inner {
+    width: 68px;
+    height: 68px;
+    border-radius: 16px;
+    background: #FFFFFF;
+    border: 1px solid rgba(20, 20, 19, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .b1-tile span {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    color: var(--ink-muted);
+  }
+
+  .b1-reveal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0;
+  }
+  .icon-pedestal {
+    width: 196px;
+    height: 196px;
+    padding: 12px;
+    border-radius: 44px;
+    background: var(--sand);
+    border: 1px solid var(--border-light);
+    box-shadow: 0 32px 64px rgba(20, 20, 19, 0.08);
+    margin-bottom: 42px;
+  }
+  .icon-pedestal img {
+    width: 100%;
+    height: 100%;
+    border-radius: 34px;
+    display: block;
+  }
+
+  /* BEAT 2: Terracotta Spec Sheet & Carbon Launcher */
+  #beat2a { background: var(--terra); color: var(--carbon); }
+  .b2a-center {
+    position: absolute;
+    inset: 80px 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .spec-table {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 1320px;
+    border-top: 1px solid rgba(20, 20, 19, 0.35);
+    border-bottom: 1px solid rgba(20, 20, 19, 0.35);
+  }
+  .spec-cell {
+    padding: 24px 20px;
+    border-right: 1px solid rgba(20, 20, 19, 0.25);
+    font-family: var(--mono);
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    color: #FAF9F5;
+  }
+  .spec-cell:last-child { border-right: none; }
+  .spec-cell strong {
+    display: block;
+    color: var(--carbon);
+    font-size: 24px;
+    margin-bottom: 6px;
+  }
+
+  #beat2b { background: var(--carbon); color: var(--parchment); }
+  .b2b-stage {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 42px;
+  }
+  .launcher-win { width: 880px; }
+  .launcher-search {
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border-dark);
+    font-family: var(--mono);
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .caret { display: inline-block; width: 3px; height: 28px; background: var(--terra); }
+  .launcher-list { padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .launcher-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-radius: 12px;
+    font-size: 23px;
+    color: #D7D4CC;
+  }
+  .launcher-row.active {
+    background: rgba(217, 119, 87, 0.14);
+    border: 1px solid rgba(217, 119, 87, 0.45);
+    color: #FAF9F5;
+  }
+  .launcher-kbd {
+    font-family: var(--mono);
+    font-size: 16px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: #272522;
+    border: 1px solid #3B3833;
+    color: var(--ink-muted-dark);
+  }
+  .launcher-row.active .launcher-kbd {
+    background: var(--terra);
+    border-color: var(--terra);
+    color: #FAF9F5;
+  }
+
+  /* BEAT 3: Editorial Split Translation */
+  #beat3 { background: var(--parchment); }
+  .split-grid {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 42% 54%;
+    gap: 4%;
+    align-items: center;
+  }
+  .win-chrome {
+    height: 44px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+    background: #F6F4EE;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-muted);
+  }
+  .dots { display: flex; gap: 8px; }
+  .dots i { width: 11px; height: 11px; border-radius: 50%; display: block; background: #D7D3C7; }
+  .dots i:first-child { background: var(--terra); }
+  .tr-body {
+    display: grid;
+    grid-template-columns: 38% 62%;
+    height: 560px;
+  }
+  .tr-code {
+    background: var(--espresso);
+    padding: 30px 26px;
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.8;
+    color: #D7D2C8;
+    border-right: 1px solid var(--border-light);
+  }
+  .kw { color: var(--terra); }
+  .cm { color: #8A857B; }
+  .ty { color: #B4C29E; }
+  .tr-doc {
+    position: relative;
+    background: #FFFFFF;
+    padding: 40px 38px;
+  }
+  .tr-block {
+    position: relative;
+    height: 255px;
+  }
+  .tr-eng, .tr-zh {
+    position: absolute;
+    inset: 0;
+    padding: 16px;
+  }
+  .tr-eng {
+    font-family: Georgia, serif;
+    font-size: 27px;
+    line-height: 1.55;
+    color: var(--carbon);
+  }
+  .tr-zh {
+    background: #FFFFFF;
+    font-family: var(--sans);
+    font-size: 29px;
+    font-weight: 500;
+    line-height: 1.65;
+    color: var(--carbon);
+    clip-path: inset(0 100% 0 0);
+  }
+  .tr-marquee {
+    position: absolute;
+    top: -4px; left: -4px;
+    border: 2px dashed var(--terra);
+    background: rgba(217, 119, 87, 0.05);
+    pointer-events: none;
+  }
+  .tr-scanline {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+    background: var(--terra);
+    box-shadow: -16px 0 28px rgba(217, 119, 87, 0.35);
+    opacity: 0;
+  }
+  .vocab-card {
+    margin-top: 24px;
+    padding: 20px 22px;
+    background: var(--parchment);
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    opacity: 0;
+  }
+  .vocab-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: var(--terra);
+  }
+  .vocab-btn.saved { background: var(--sage); }
+
+  /* BEAT 4: Bento Long Capture + Cutout */
+  #beat4 { background: var(--parchment); }
+  .bento-2 {
+    height: 100%;
+    padding-top: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .bento-left {
+    border-right: 1px solid var(--border-light);
+    padding-right: 56px;
+  }
+  .stitch-feed {
+    height: 490px;
+    padding: 24px;
+    background: #FFFFFF;
+    overflow: hidden;
+    position: relative;
+  }
+  .stitch-card {
+    padding: 22px 24px;
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    background: var(--parchment);
+    margin-bottom: 18px;
+  }
+  .redact-pill {
+    display: inline-block;
+    padding: 5px 14px;
+    border-radius: 7px;
+    background: var(--carbon);
+    color: var(--terra);
+    font-size: 14px;
+    font-family: var(--mono);
+  }
+  .cutout-stage {
+    position: relative;
+    height: 460px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .terra-disc {
+    position: absolute;
+    width: 340px;
+    height: 340px;
+    border-radius: 50%;
+    background: var(--terra);
+  }
+  .sticker-card {
+    position: relative;
+    width: 390px;
+    padding: 14px 14px 20px;
+    background: #FFFFFF;
+    border-radius: 14px;
+    border: 12px solid #FFFFFF;
+    box-shadow: 0 28px 50px rgba(20, 20, 19, 0.16);
+    transform: rotate(-4.5deg);
+  }
+  .sticker-card img {
+    width: 100%;
+    height: 205px;
+    object-fit: cover;
+    border-radius: 8px;
+    display: block;
+  }
+
+  /* BEAT 5: Dynamic Island Notch */
+  #beat5 { background: var(--bone); }
+  .b5-bg-type {
+    position: absolute;
+    top: 92px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 112px;
+    line-height: 1.08;
+    font-weight: 700;
+    color: var(--carbon);
+    letter-spacing: -0.03em;
+  }
+  .mac-bezel {
+    position: absolute;
+    top: 258px;
+    left: 150px;
+    right: 150px;
+    bottom: 58px;
+    background: var(--carbon);
+    border-radius: 28px;
+    padding: 12px;
+    box-shadow: 0 36px 80px rgba(20, 20, 19, 0.14);
+  }
+  .mac-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    background: var(--parchment);
+    background-image: radial-gradient(var(--border-light) 1px, transparent 1px);
+    background-size: 28px 28px;
+    overflow: hidden;
+  }
+  .notch-island {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate3d(-50%, 0, 0);
+    background: var(--carbon);
+    border-bottom-left-radius: 26px;
+    border-bottom-right-radius: 26px;
+    color: var(--parchment);
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 26px 28px 24px;
+    gap: 28px;
+    box-shadow: 0 24px 50px rgba(20, 20, 19, 0.25);
+  }
+  .ear-pill {
+    position: absolute;
+    top: 16px;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 21px;
+    background: var(--carbon);
+    color: var(--parchment);
+    font-family: var(--mono);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .shelf-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .shelf-slot {
+    height: 118px;
+    border-radius: 14px;
+    background: var(--espresso);
+    border: 1px solid var(--border-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #DCD8CE;
+  }
+
+  /* BEAT 6: Voice Dictation (Warm Carbon) */
+  #beat6 { background: var(--carbon); color: var(--parchment); }
+  .b6-stage {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 44px;
+  }
+  .wave-row {
+    height: 220px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wave-bar {
+    width: 13px;
+    border-radius: 7px;
+    background: var(--sand);
+  }
+  .wave-bar.hot { background: var(--terra); }
+
+  /* BEAT 7: Architectural Studio Auto-Follow Timeline */
+  #beat7 { background: var(--parchment); }
+  .b7-layout {
+    height: 100%;
+    padding-top: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    justify-content: center;
+  }
+  .studio-viewport {
+    position: relative;
+    height: 495px;
+    width: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--sand);
+  }
+  .studio-zoom-world {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+  }
+  .studio-mock-app {
+    width: 780px;
+    height: 270px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(20, 20, 19, 0.12);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline-board {
+    position: relative;
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+  .tl-ruler {
+    height: 32px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bone);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px 0 240px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+  .tl-track {
+    height: 62px;
+    border-bottom: 1px solid var(--border-light);
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    align-items: center;
+  }
+  .tl-track:last-of-type { border-bottom: none; }
+  .tl-label {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-right: 1px solid var(--border-light);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-muted);
+    background: var(--parchment);
+  }
+  .tl-lane { position: relative; height: 100%; padding: 10px 20px; }
+  .tl-playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--terra);
+    z-index: 10;
+  }
+  .tl-playhead::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: var(--terra);
+  }
+
+  /* BEAT 8: Monograph Finale */
+  #beat8 { background: var(--parchment); }
+  .b8-grid {
+    height: 100%;
+    display: grid;
+    grid-template-columns: 48% 46%;
+    gap: 6%;
+    align-items: center;
+  }
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    padding: 28px;
+  }
+  .sc-cell {
+    padding: 18px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--parchment);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="stage">
+
+  <!-- BEAT 1: WARM PARCHMENT MANIFESTO -> CONVERGENCE -->
+  <section id="beat1" class="beat active">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>00 / PROBLEM STATEMENT</span></div>
+      <div class="hud-right">INTRODUCING GLINT · MACOS 14+</div>
+    </div>
+
+    <div class="b1-manifesto" id="b1-m">
+      <div class="b1-sub">录屏、长截图、原地翻译、刘海暂存、语音听写……</div>
+      <div class="b1-h1 display-zh">
+        <div>你的 Mac，</div>
+        <div style="margin-top: 10px;"><span class="pill-terra">不该</span>塞满七个碎片工具。</div>
+      </div>
+    </div>
+
+    <!-- 6 Double-Bezel Monochrome Vector Tiles -->
+    <div id="b1-tiles">
+      <div class="b1-tile" data-x="230" data-y="180">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><path d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/><circle cx="12" cy="12" r="3" stroke="#D97757"/></svg>
+        </div>
+        <span>CAPTURE</span>
+      </div>
+      <div class="b1-tile" data-x="1530" data-y="180">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="#D97757" stroke="none"/></svg>
+        </div>
+        <span>STUDIO</span>
+      </div>
+      <div class="b1-tile" data-x="170" data-y="510">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1"/><path d="M13 19l4-9 4 9M14.5 16h5" stroke="#D97757"/></svg>
+        </div>
+        <span>TRANSLATE</span>
+      </div>
+      <div class="b1-tile" data-x="1590" data-y="510">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="M8 5v3a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V5" stroke="#D97757"/></svg>
+        </div>
+        <span>NOTCH BAR</span>
+      </div>
+      <div class="b1-tile" data-x="250" data-y="810">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><rect x="9" y="3" width="6" height="11" rx="3" stroke="#D97757"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg>
+        </div>
+        <span>VOICE</span>
+      </div>
+      <div class="b1-tile" data-x="1510" data-y="810">
+        <div class="b1-tile-inner">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#141413" stroke-width="1.6"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5" stroke="#D97757"/></svg>
+        </div>
+        <span>NOTEBOOK</span>
+      </div>
+    </div>
+
+    <div class="b1-reveal" id="b1-rev">
+      <div class="icon-pedestal"><img id="img-appicon-1" src="" alt="Glint" /></div>
+      <div class="display-serif" style="font-size: 106px; color: var(--carbon);">Introducing Glint</div>
+      <div style="font-size: 32px; color: var(--ink-muted); margin-top: 22px;">专为 Apple Silicon 打造的 macOS 原生全能工作台</div>
+    </div>
+  </section>
+
+  <!-- BEAT 2A: TERRACOTTA SPEC SHEET -->
+  <section id="beat2a" class="beat terra-sheet">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot" style="background: var(--carbon);"></span><span>ARCHITECTURE / SWIFT 5.10 NATIVE</span></div>
+      <div class="hud-right" style="opacity: 0.78;">APPLE SILICON · ZERO WEB BLOAT</div>
+    </div>
+    <div class="b2a-center" id="b2a-c">
+      <div class="display-serif" style="font-size: 106px; color: var(--carbon);">One Shortcut. Zero Bloat.</div>
+      <div class="spec-table">
+        <div class="spec-cell"><strong>263</strong>SWIFT SOURCES</div>
+        <div class="spec-cell"><strong>60 FPS</strong>SCREENCAPTUREKIT</div>
+        <div class="spec-cell"><strong>ON-DEVICE</strong>VISION & COREML</div>
+        <div class="spec-cell"><strong>ARM64</strong>NATIVE BINARY</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 2B: WARM CARBON LAUNCHER -->
+  <section id="beat2b" class="beat dark">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>LAUNCHER / COMMAND PALETTE</span></div>
+      <div class="hud-right">GLINT ENGINE · ZERO-SAVE CONTRACT</div>
+    </div>
+    <div class="b2b-stage">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <kbd id="k-opt">&#8997; Option</kbd>
+        <span style="color: var(--ink-muted-dark); font-family: var(--mono);">+</span>
+        <kbd id="k-space">Space</kbd>
+      </div>
+      <div class="bezel launcher-win" id="b2b-win">
+        <div class="bezel-core">
+          <div class="launcher-search">
+            <span style="color: var(--terra);">&gt;</span>
+            <span id="b2b-query"></span><span class="caret"></span>
+          </div>
+          <div class="launcher-list" id="b2b-list">
+            <div class="launcher-row active"><span>智能录屏与 Studio 运镜编辑器</span><span class="launcher-kbd">&#8984; &#8679; R</span></div>
+            <div class="launcher-row"><span>屏幕原地擦字翻译 (In-Place OCR)</span><span class="launcher-kbd">&#8984; &#8679; T</span></div>
+            <div class="launcher-row"><span>亚像素长截图与隐私自动打码</span><span class="launcher-kbd">&#8984; &#8679; S</span></div>
+            <div class="launcher-row"><span>全局按住说话语音听写</span><span class="launcher-kbd">&#8984; &#8679; D</span></div>
+            <div class="launcher-row"><span>Vision 主体抠图与桌面贴图</span><span class="launcher-kbd">&#8984; &#8679; 8</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 3: EDITORIAL SPLIT IN-PLACE TRANSLATION -->
+  <section id="beat3" class="beat">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>01 / TRANSLATE · IN-PLACE OCR & INPAINTING</span></div>
+      <div class="hud-right">CODE-IMMUNE PIPELINE</div>
+    </div>
+    <div class="split-grid">
+      <div id="b3-left">
+        <div class="eyebrow">01 / SCREEN TRANSLATION</div>
+        <div class="display-zh" style="font-size: 68px;">原地擦字，<br/>像素级回填。</div>
+        <div class="display-serif" style="font-size: 46px; color: var(--terra); margin: 22px 0 28px;">In-Place Translation</div>
+        <div style="font-size: 24px; color: var(--ink-muted); line-height: 1.7; margin-bottom: 36px;">
+          Vision 横竖排文字定位 · IDE 代码语法免疫<br/>
+          划词即查双语释义 · 一键存入本地生词本
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <kbd id="k3-1">&#8984;</kbd><kbd id="k3-2">&#8679;</kbd><kbd id="k3-3">T</kbd>
+        </div>
+      </div>
+
+      <div class="bezel" id="b3-win">
+        <div class="bezel-core">
+          <div class="win-chrome">
+            <div class="dots"><i></i><i></i><i></i></div>
+            <span>Xcode · GlintTranslatePipeline.swift</span>
+            <span>60HZ RETINA</span>
+          </div>
+          <div class="tr-body">
+            <div class="tr-code">
+              <div class="cm">// Code-Immune Zone</div>
+              <div><span class="kw">func</span> translate(</div>
+              <div>&nbsp;&nbsp;rect: <span class="ty">CGRect</span>,</div>
+              <div>&nbsp;&nbsp;scale: <span class="ty">CGFloat</span></div>
+              <div>) <span class="kw">async</span> -&gt; <span class="ty">CGImage</span> {</div>
+              <div>&nbsp;&nbsp;<span class="kw">let</span> ocr = <span class="ty">VisionOCR</span>()</div>
+              <div>&nbsp;&nbsp;<span class="kw">let</span> bg = <span class="ty">Inpaint</span>()</div>
+              <div>&nbsp;&nbsp;<span class="kw">return</span> <span class="kw">await</span> run()</div>
+              <div>}</div>
+              <div class="cm" style="margin-top: 28px;">// 变量符号保持原文不翻译</div>
+            </div>
+            <div class="tr-doc">
+              <div class="tr-block">
+                <div class="tr-eng">
+                  Neural inpainting removes source glyphs seamlessly while preserving underlying colors, layout, and spacing.
+                </div>
+                <div class="tr-zh" id="tr-zh-clip">
+                  神经网络原位擦除原文，完整保留原有背景色彩、字距呼吸与排版层级，所见即所得。
+                </div>
+                <div class="tr-marquee" id="tr-marquee" style="width: 0; height: 0; opacity: 0;"></div>
+                <div class="tr-scanline" id="tr-scan"></div>
+              </div>
+
+              <div class="vocab-card" id="vocab-card">
+                <div style="display: flex; align-items: baseline; justify-content: space-between;">
+                  <span class="display-serif" style="font-size: 30px;">inpainting</span>
+                  <span style="font-family: var(--mono); font-size: 14px; color: var(--ink-muted);">[ in-paint-ing ]</span>
+                </div>
+                <div style="font-size: 18px; color: var(--ink-muted); margin-top: 6px;">n. 图像原生背景修补 · 擦除重建</div>
+                <div class="vocab-btn" id="vocab-btn">+ 加入本地生词本</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 4: ASYMMETRIC BENTO CAPTURE & CUTOUT -->
+  <section id="beat4" class="beat">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>02 / CAPTURE · SUB-PIXEL STITCH & VISION CUTOUT</span></div>
+      <div class="hud-right">LINE-HASH ALIGNMENT · PRIVACY SCANNER</div>
+    </div>
+    <div class="bento-2">
+      <div class="bento-left">
+        <div class="eyebrow">02A / LONG CAPTURE & REDACTION</div>
+        <div class="display-zh" style="font-size: 48px; margin-bottom: 24px;">亚像素长截图拼接</div>
+        <div class="bezel">
+          <div class="bezel-core">
+            <div class="win-chrome">
+              <div class="dots"><i></i><i></i><i></i></div>
+              <span id="b4-px" style="color: var(--terra); font-weight: 600;">HEIGHT 3,840 PX</span>
+              <span>&#8984; &#8679; S</span>
+            </div>
+            <div class="stitch-feed">
+              <div id="b4-scroll-wrap">
+                <div class="stitch-card">
+                  <div style="font-family: var(--mono); font-size: 13px; color: var(--ink-muted);">SECTION 01 · RELEASE NOTES</div>
+                  <div style="font-size: 20px; font-weight: 600; margin-top: 8px;">行级哈希 + 亚像素特征点对齐</div>
+                  <div style="height: 8px; width: 78%; background: var(--sand); border-radius: 4px; margin-top: 14px;"></div>
+                </div>
+                <div class="stitch-card">
+                  <div style="font-family: var(--mono); font-size: 13px; color: var(--terra);">PRIVACY SCANNER · AUTO DETECTION</div>
+                  <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px; font-family: var(--mono); font-size: 16px;">
+                    <span>API_KEY =</span>
+                    <span class="redact-pill" id="b4-redact">sk-glint-98a4f2c8</span>
+                  </div>
+                </div>
+                <div class="stitch-card" style="position: relative;">
+                  <div style="font-family: var(--mono); font-size: 13px; color: var(--ink-muted);">SECTION 03 · VECTOR ANNOTATION</div>
+                  <div style="font-size: 19px; margin-top: 8px;">内置 12 种矢量高亮、弧线箭头与步骤编号</div>
+                  <svg width="240" height="68" viewBox="0 0 240 68" style="margin-top: 8px; overflow: visible;">
+                    <path d="M 10 42 Q 110 -8 195 28" fill="none" stroke="#D97757" stroke-width="3.5" stroke-linecap="round"/>
+                    <circle cx="212" cy="30" r="16" fill="#D97757"/>
+                    <text x="212" y="36" text-anchor="middle" fill="#FAF9F5" font-family="SF Mono, Menlo" font-size="16" font-weight="bold">1</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="eyebrow">02B / VISION FOREGROUND MATTING</div>
+        <div class="display-zh" style="font-size: 48px; margin-bottom: 10px;">视觉抠图与桌面贴图</div>
+        <div style="font-size: 22px; color: var(--ink-muted); margin-bottom: 18px;">主体一键提取透明 PNG · 置顶悬浮 Pin 窗</div>
+        <div class="cutout-stage">
+          <div class="terra-disc" id="b4-disc"></div>
+          <div class="sticker-card" id="b4-sticker">
+            <img id="img-amber-sticker" src="" alt="Warm Studio Sticker" />
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 6px 0; font-family: var(--mono); font-size: 12px; color: var(--ink-muted);">
+              <span>VISION CUTOUT · STICKER</span>
+              <span style="color: var(--terra);">PIN &#8599;</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px;">
+          <kbd id="k4-1">&#8984;</kbd><kbd id="k4-2">&#8679;</kbd><kbd id="k4-3">8</kbd>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 5: DYNAMIC ISLAND NOTCH & SUPER SHELF -->
+  <section id="beat5" class="beat" style="background: var(--bone);">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>03 / NOTCH BAR · SUPER SHELF & LIVE LYRICS</span></div>
+      <div class="hud-right">MPRemoteCommandCenter · LRCLIB</div>
+    </div>
+
+    <div class="b5-bg-type" id="b5-bg-txt">一推，即存。</div>
+
+    <div class="mac-bezel">
+      <div class="mac-screen">
+        <div class="ear-pill" id="b5-ear-l" style="left: 130px; opacity: 0;">VOL · 72%</div>
+        <div class="ear-pill" id="b5-ear-r" style="right: 130px; opacity: 0;">BRT · 88%</div>
+
+        <div class="notch-island" id="b5-notch" style="width: 820px; height: 225px;">
+          <div style="border-right: 1px solid var(--border-dark); padding-right: 22px;">
+            <div style="font-family: var(--mono); font-size: 12px; color: var(--terra); letter-spacing: 0.08em;">SUPER SHELF · DRAG & DROP</div>
+            <div class="shelf-slots">
+              <div class="shelf-slot" id="slot-1">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97757" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Shot.png</span>
+              </div>
+              <div class="shelf-slot" id="slot-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FAF9F5" stroke-width="1.6"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12V9z"/><path d="M14 3v6h6"/></svg>
+                <span>Spec.md</span>
+              </div>
+              <div class="shelf-slot" id="slot-3">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#788C5D" stroke-width="1.6"><path d="M8 9l-3 3 3 3M16 9l3 3-3 3M13 7l-2 10"/></svg>
+                <span>App.swift</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; color: var(--sage);">
+              <span>NOW PLAYING · LRCLIB</span>
+              <span>LOSSLESS</span>
+            </div>
+            <div>
+              <div style="font-size: 20px; font-weight: 600;">Minimalist Studio — Warm Paper Mix</div>
+              <div id="b5-lyric" style="font-size: 17px; color: var(--terra); margin-top: 8px; font-family: Georgia, serif; font-style: italic;">
+                "The best interface needs no explanation."
+              </div>
+            </div>
+            <div style="height: 5px; background: #2D2B28; border-radius: 3px; overflow: hidden;">
+              <div id="b5-prog" style="height: 100%; width: 45%; background: var(--terra);"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); background: #FFFFFF; border: 1px solid var(--border-light); padding: 14px 32px; border-radius: 14px; font-size: 22px; color: var(--carbon); box-shadow: 0 12px 30px rgba(20,20,19,0.06);">
+          鼠标轻推屏幕顶部展开暂存架 · 原生液体 HUD 接管 · Apple Music / 网易云流动歌词
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 6: WARM CARBON VOICE DICTATION -->
+  <section id="beat6" class="beat dark">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>04 / VOICE · 48KHZ PUSH-TO-TALK DICTATION</span></div>
+      <div class="hud-right">ON-DEVICE HOTWORD EVOLUTION</div>
+    </div>
+    <div class="b6-stage">
+      <div style="text-align: center;">
+        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 18px;">
+          <kbd class="pressed" id="k6-1">&#8984;</kbd>
+          <kbd class="pressed" id="k6-2">&#8679;</kbd>
+          <kbd class="pressed" id="k6-3">D</kbd>
+        </div>
+        <div id="b6-status" style="font-family: var(--mono); font-size: 15px; color: var(--terra); letter-spacing: 0.1em;">
+          LISTENING · 48KHZ STREAM
+        </div>
+      </div>
+
+      <div class="wave-row" id="b6-waves"></div>
+
+      <div class="bezel" style="width: 1120px;">
+        <div class="bezel-core" style="padding: 36px 42px;">
+          <div style="font-family: var(--mono); font-size: 13px; color: var(--ink-muted-dark); margin-bottom: 16px;">NOTEEDITOR · CURSOR FOCUS INJECTION</div>
+          <div style="font-size: 32px; line-height: 1.5; min-height: 54px;">
+            <span id="b6-typed"></span><span class="caret" style="height: 32px; vertical-align: middle;"></span>
+          </div>
+          <div style="font-size: 18px; color: var(--ink-muted-dark); margin-top: 22px; border-top: 1px solid var(--border-dark); padding-top: 16px;">
+            端云双擎实时转写 · 专有词库自动纠偏 · 零延迟插入当前光标
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 7: ARCHITECTURAL STUDIO AUTO-FOLLOW TIMELINE (ZERO BLUE!) -->
+  <section id="beat7" class="beat">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>05 / STUDIO EDITOR · AUTO-FOLLOW ZOOM & NLE</span></div>
+      <div class="hud-right">MOUSE TELEMETRY · 4-TRACK MIXING</div>
+    </div>
+    <div class="b7-layout">
+      <div class="bezel">
+        <div class="bezel-core">
+          <div class="studio-viewport" id="b7-vp">
+            <img id="img-amber-studio" src="" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.92;" />
+            <div style="position: absolute; top: 18px; right: 22px; z-index: 5; background: var(--carbon); color: var(--parchment); font-family: var(--mono); font-size: 13px; padding: 7px 14px; border-radius: 8px;">
+              AUTO-FOLLOW · <span id="b7-zoom-txt" style="color: var(--terra);">1.00×</span>
+            </div>
+            <div class="studio-zoom-world" id="b7-world">
+              <div class="studio-mock-app">
+                <div class="win-chrome">
+                  <div class="dots"><i></i><i></i><i></i></div>
+                  <span>Glint Studio Exporter · Ready</span>
+                  <span>PRORES / MP4</span>
+                </div>
+                <div style="flex: 1; padding: 28px 34px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="font-family: var(--mono); font-size: 13px; color: var(--ink-muted);">TELEMETRY ZOOM CURVE</div>
+                    <div class="display-zh" style="font-size: 34px; margin-top: 8px;">鼠标跟焦运镜已就绪</div>
+                    <div style="font-size: 18px; color: var(--ink-muted); margin-top: 10px;">圆角 · 暖光阴影 · 48kHz 画外音同步</div>
+                  </div>
+                  <div id="b7-export-btn" style="background: var(--terra); color: #FFFDF9; padding: 16px 28px; border-radius: 12px; font-family: var(--mono); font-size: 16px; font-weight: 600;">
+                    EXPORT MP4 &#8599;
+                  </div>
+                </div>
+              </div>
+              <!-- SVG Cursor gliding to Export button -->
+              <svg id="b7-cursor" width="32" height="32" viewBox="0 0 24 24" style="position: absolute; left: 960px; top: 240px;">
+                <path d="M5 3l14 9-6 2-3 6z" fill="#141413" stroke="#FAF9F5" stroke-width="1.6"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ruled Architectural NLE Timeline -->
+      <div class="timeline-board">
+        <div class="tl-playhead" id="b7-playhead" style="left: 260px;"></div>
+        <div class="tl-ruler">
+          <span>00:00</span><span>00:02</span><span>00:04</span><span>00:06</span><span>00:08</span><span>00:10</span>
+        </div>
+        <div class="tl-track">
+          <div class="tl-label">01 / VIDEO TRIM</div>
+          <div class="tl-lane" style="display: flex; gap: 10px;">
+            <div style="flex: 2; height: 100%; border-radius: 8px; background: var(--sand); border-left: 6px solid var(--terra); border-right: 6px solid var(--terra); display: flex; align-items: center; padding: 0 14px; font-family: var(--mono); font-size: 13px;">ScreenCaptureKit 60fps</div>
+            <div style="flex: 1; height: 100%; border-radius: 8px; background: var(--bone); border: 1px solid var(--border-light); display: flex; align-items: center; padding: 0 14px; font-family: var(--mono); font-size: 13px; color: var(--ink-muted);">SPEED · 1.25×</div>
+          </div>
+        </div>
+        <div class="tl-track">
+          <div class="tl-label" style="color: var(--terra);">02 / ZOOM · Z</div>
+          <div class="tl-lane" style="padding: 6px 20px;">
+            <svg width="100%" height="100%" viewBox="0 0 1200 44" preserveAspectRatio="none">
+              <path d="M 0 36 L 240 36 C 320 36 360 8 460 8 L 820 8 C 900 8 960 36 1060 36 L 1200 36" fill="none" stroke="#D97757" stroke-width="2.5"/>
+              <circle cx="460" cy="8" r="5" fill="#D97757"/><circle cx="820" cy="8" r="5" fill="#D97757"/>
+            </svg>
+          </div>
+        </div>
+        <div class="tl-track">
+          <div class="tl-label" style="color: var(--sage);">03 / VOICE 48K</div>
+          <div class="tl-lane">
+            <div style="width: 78%; height: 100%; border-radius: 8px; background: var(--sage-soft); border: 1px solid var(--sage); display: flex; align-items: center; padding: 0 16px; font-family: var(--mono); font-size: 13px; color: var(--sage);">48KHZ AAC VOICEOVER · SIDECHAIN READY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BEAT 8: MONOGRAPH FINALE -->
+  <section id="beat8" class="beat">
+    <div class="arch-frame"></div>
+    <div class="hud">
+      <div class="hud-left"><span class="hud-dot"></span><span>GLINT FOR MACOS · CONTENT AS HERO</span></div>
+      <div class="hud-right">VERSION 0.1.55 · READY</div>
+    </div>
+    <div class="b8-grid">
+      <div>
+        <div style="font-size: 28px; color: var(--ink-muted); margin-bottom: 24px;">你只需要按下一组快捷键</div>
+        <div class="bezel" id="b8-card">
+          <div class="bezel-core">
+            <div class="shortcut-grid">
+              <div class="sc-cell" id="sc-0"><div><kbd>&#8984; &#8679; R</kbd></div><div style="font-size: 21px; font-weight: 600;">智能录屏编辑器</div></div>
+              <div class="sc-cell" id="sc-1"><div><kbd>&#8984; &#8679; S</kbd></div><div style="font-size: 21px; font-weight: 600;">亚像素长截图</div></div>
+              <div class="sc-cell" id="sc-2"><div><kbd>&#8984; &#8679; T</kbd></div><div style="font-size: 21px; font-weight: 600;">屏幕原地翻译</div></div>
+              <div class="sc-cell" id="sc-3"><div><kbd>&#8984; &#8679; D</kbd></div><div style="font-size: 21px; font-weight: 600;">按住说话听写</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="b8-hero">
+        <div class="icon-pedestal" style="width: 148px; height: 148px; border-radius: 34px; margin-bottom: 30px;">
+          <img id="img-appicon-2" src="" alt="Glint" style="border-radius: 24px;" />
+        </div>
+        <div style="font-size: 32px; color: var(--ink-muted); margin-bottom: 14px;">最优雅的界面，是无需解释的界面。</div>
+        <div class="display-serif" style="font-size: 162px; color: var(--carbon);">Glint.</div>
+        <div style="display: inline-block; margin-top: 32px; background: var(--terra); color: #FFFDF9; padding: 13px 26px; border-radius: 12px; font-family: var(--mono); font-size: 17px; letter-spacing: 0.04em;">
+          macOS 14.0+ · Apple Silicon Native · 现已就绪
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// Deterministic spring & cubic easings
+function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+function easeOutCubic(x) { x = clamp01(x); return 1 - Math.pow(1 - x, 3); }
+function easeInOutCubic(x) { x = clamp01(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+function spring(t, stiffness = 190, damping = 22) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(stiffness);
+  const zeta = damping / (2 * w0);
+  if (zeta < 1) {
+    const wd = w0 * Math.sqrt(1 - zeta * zeta);
+    const val = 1 - Math.exp(-zeta * w0 * t) * (Math.cos(wd * t) + (zeta / Math.sqrt(1 - zeta * zeta)) * Math.sin(wd * t));
+    return Math.max(0, Math.min(1.12, val));
+  }
+  return clamp01(1 - Math.exp(-w0 * t) * (1 + w0 * t));
+}
+
+// Build 48 voice bars once
+const waveBox = document.getElementById("b6-waves");
+for (let i = 0; i < 48; i++) {
+  const d = document.createElement("div");
+  d.className = "wave-bar" + (i >= 15 && i <= 32 ? " hot" : "");
+  d.style.height = "28px";
+  waveBox.appendChild(d);
+}
+
+const beats = ["beat1", "beat2a", "beat2b", "beat3", "beat4", "beat5", "beat6", "beat7", "beat8"];
+function showBeat(id) {
+  for (const b of beats) document.getElementById(b).classList.toggle("active", b === id);
+}
+
+window.setAssets = function(appIconDataUrl, amberDataUrl) {
+  document.getElementById("img-appicon-1").src = appIconDataUrl;
+  document.getElementById("img-appicon-2").src = appIconDataUrl;
+  document.getElementById("img-amber-sticker").src = amberDataUrl;
+  document.getElementById("img-amber-studio").src = amberDataUrl;
+};
+
+window.renderAt = function(t) {
+  // Beat 1 (0.0s - 4.0s)
+  if (t < 4.0) {
+    showBeat("beat1");
+    const mEl = document.getElementById("b1-m");
+    const rEl = document.getElementById("b1-rev");
+    const tiles = document.querySelectorAll(".b1-tile");
+    if (t < 2.25) {
+      const mOut = t >= 1.75 ? easeInOutCubic((t - 1.75) / 0.45) : 0;
+      mEl.style.opacity = String(1 - mOut);
+      mEl.style.transform = `translate3d(0, ${24 * (1 - easeOutCubic(t / 0.4)) - 20 * mOut}px, 0) scale(${1 - 0.04 * mOut})`;
+      rEl.style.opacity = "0";
+      const conv = t >= 1.65 ? easeInOutCubic((t - 1.65) / 0.55) : 0;
+      tiles.forEach((el, idx) => {
+        const ox = parseFloat(el.dataset.x), oy = parseFloat(el.dataset.y);
+        const s = spring(t - 0.14 - idx * 0.07);
+        const cx = ox + (880 - ox) * conv;
+        const cy = oy + (420 - oy) * conv;
+        const sc = s * (1 - 0.65 * conv);
+        el.style.left = "0px"; el.style.top = "0px";
+        el.style.transform = `translate3d(${cx}px, ${cy}px, 0) scale(${sc.toFixed(3)})`;
+        el.style.opacity = String(clamp01(s) * (1 - conv));
+      });
+    } else {
+      mEl.style.opacity = "0";
+      tiles.forEach(el => { el.style.opacity = "0"; });
+      const lt = t - 2.25;
+      const p = spring(lt, 180, 21);
+      rEl.style.opacity = String(easeOutCubic(lt / 0.25));
+      rEl.style.transform = `translate3d(0, ${(1 - p) * 28}px, 0) scale(${(0.92 + 0.08 * p).toFixed(3)})`;
+    }
+  }
+  // Beat 2A (4.0s - 5.0s)
+  else if (t < 5.0) {
+    showBeat("beat2a");
+    const lt = t - 4.0;
+    const p = spring(lt, 220, 24);
+    const el = document.getElementById("b2a-c");
+    el.style.opacity = String(easeOutCubic(lt / 0.18));
+    el.style.transform = `translate3d(0, ${(1 - p) * 32}px, 0)`;
+  }
+  // Beat 2B (5.0s - 7.2s)
+  else if (t < 7.2) {
+    showBeat("beat2b");
+    const lt = t - 5.0;
+    const pressed = lt >= 0.08 && lt <= 0.34;
+    document.getElementById("k-opt").classList.toggle("pressed", pressed);
+    document.getElementById("k-space").classList.toggle("pressed", pressed);
+    const win = document.getElementById("b2b-win");
+    const wp = spring(lt - 0.18, 210, 22);
+    win.style.opacity = String(clamp01(wp));
+    win.style.transform = `translate3d(0, ${(1 - wp) * 28}px, 0) scale(${(0.95 + 0.05 * wp).toFixed(3)})`;
+    const q = "glint".slice(0, Math.max(0, Math.min(5, Math.floor((lt - 0.34) * 11))));
+    document.getElementById("b2b-query").textContent = q;
+    const rows = document.querySelectorAll("#b2b-list .launcher-row");
+    const sel = Math.min(4, Math.max(0, Math.floor((lt - 0.65) / 0.28)));
+    rows.forEach((r, i) => r.classList.toggle("active", i === sel));
+  }
+  // Beat 3 (7.2s - 11.4s)
+  else if (t < 11.4) {
+    showBeat("beat3");
+    const lt = t - 7.2;
+    const kp = lt >= 0.22 && lt <= 0.50;
+    ["k3-1", "k3-2", "k3-3"].forEach(id => document.getElementById(id).classList.toggle("pressed", kp));
+    const sel = easeInOutCubic((lt - 0.55) / 0.50);
+    const mq = document.getElementById("tr-marquee");
+    mq.style.opacity = sel > 0.01 && lt < 2.2 ? "1" : "0";
+    mq.style.width = `${Math.round(520 * sel)}px`;
+    mq.style.height = `${Math.round(235 * sel)}px`;
+
+    const sw = easeInOutCubic((lt - 1.15) / 1.0);
+    document.getElementById("tr-zh-clip").style.clipPath = `inset(0 ${(100 - sw * 100).toFixed(1)}% 0 0)`;
+    const scan = document.getElementById("tr-scan");
+    scan.style.opacity = sw > 0.02 && sw < 0.98 ? "1" : "0";
+    scan.style.left = `${(sw * 100).toFixed(2)}%`;
+
+    const vc = document.getElementById("vocab-card");
+    const vp = spring(lt - 2.35, 190, 22);
+    vc.style.opacity = String(clamp01(vp));
+    vc.style.transform = `translate3d(0, ${(1 - vp) * 18}px, 0)`;
+    const btn = document.getElementById("vocab-btn");
+    const saved = lt >= 3.2;
+    btn.classList.toggle("saved", saved);
+    btn.textContent = saved ? "已存入本地生词本" : "+ 加入本地生词本";
+  }
+  // Beat 4 (11.4s - 15.4s)
+  else if (t < 15.4) {
+    showBeat("beat4");
+    const lt = t - 11.4;
+    const px = Math.round(3840 + 8560 * easeOutCubic(lt / 2.2));
+    document.getElementById("b4-px").textContent = `HEIGHT ${px.toLocaleString()} PX`;
+    const scr = easeInOutCubic(lt / 2.4);
+    document.getElementById("b4-scroll-wrap").style.transform = `translate3d(0, ${-Math.round(scr * 75)}px, 0)`;
+    const redEl = document.getElementById("b4-redact");
+    redEl.textContent = lt >= 0.85 ? "PrivacyScanner 已自动隐私脱敏" : "sk-glint-98a4f2c8";
+
+    const kp = lt >= 0.90 && lt <= 1.25;
+    ["k4-1", "k4-2", "k4-3"].forEach(id => document.getElementById(id).classList.toggle("pressed", kp));
+    const dp = spring(lt - 1.15, 190, 21);
+    document.getElementById("b4-disc").style.transform = `scale(${dp.toFixed(3)})`;
+    document.getElementById("b4-sticker").style.transform = `rotate(-4.5deg) scale(${(0.7 + 0.3 * dp).toFixed(3)})`;
+    document.getElementById("b4-sticker").style.opacity = String(clamp01(dp));
+  }
+  // Beat 5 (15.4s - 19.2s)
+  else if (t < 19.2) {
+    showBeat("beat5");
+    const lt = t - 15.4;
+    const np = spring(lt - 0.18, 175, 20);
+    const notch = document.getElementById("b5-notch");
+    notch.style.width = `${Math.round(240 + 620 * np)}px`;
+    notch.style.height = `${Math.round(38 + 190 * np)}px`;
+    const ear = lt >= 1.55 ? easeOutCubic((lt - 1.55) / 0.30) : 0;
+    document.getElementById("b5-ear-l").style.opacity = String(ear);
+    document.getElementById("b5-ear-r").style.opacity = String(ear);
+    ["slot-1", "slot-2", "slot-3"].forEach((id, i) => {
+      const sp = spring(lt - 0.55 - i * 0.22, 190, 21);
+      const el = document.getElementById(id);
+      el.style.transform = `translate3d(0, ${(1 - sp) * 60}px, 0) scale(${(0.8 + 0.2 * sp).toFixed(3)})`;
+      el.style.opacity = String(clamp01(sp));
+    });
+    document.getElementById("b5-lyric").textContent = lt < 2.0 ? '"The best interface needs no explanation."' : '"Pure Apple Silicon native speed."';
+    document.getElementById("b5-prog").style.width = `${Math.round(20 + 65 * clamp01(lt / 3.8))}%`;
+  }
+  // Beat 6 (19.2s - 22.8s)
+  else if (t < 22.8) {
+    showBeat("beat6");
+    const lt = t - 19.2;
+    const hold = lt >= 0.15 && lt <= 2.60;
+    ["k6-1", "k6-2", "k6-3"].forEach(id => document.getElementById(id).classList.toggle("pressed", hold));
+    document.getElementById("b6-status").textContent = hold ? "LISTENING · 48KHZ STREAM" : "RELEASED · INJECTED AT CURSOR";
+    const bars = waveBox.children;
+    const amp = hold ? 1.0 : 0.16;
+    for (let i = 0; i < bars.length; i++) {
+      const w = 0.28 + 0.72 * Math.abs(Math.sin(i * 0.42 + lt * 10.5) * Math.cos(i * 0.18 - lt * 5.0));
+      bars[i].style.height = `${Math.round(22 + 175 * amp * w)}px`;
+    }
+    const sentence = "按住快捷键直接说话，松手文字毫秒级打入当前光标焦点。";
+    const n = Math.min(sentence.length, Math.max(0, Math.floor((lt - 0.35) * 12)));
+    document.getElementById("b6-typed").textContent = sentence.slice(0, n);
+  }
+  // Beat 7 (22.8s - 26.8s)
+  else if (t < 26.8) {
+    showBeat("beat7");
+    const lt = t - 22.8;
+    const p = clamp01(lt / 4.0);
+    document.getElementById("b7-playhead").style.left = `${Math.round(250 + 1380 * p)}px`;
+    // Smooth Studio auto-follow zoom into Export button then gentle pull back
+    const zIn = easeInOutCubic((lt - 0.45) / 1.35);
+    const zOut = lt >= 2.9 ? easeInOutCubic((lt - 2.9) / 0.8) : 0;
+    const zm = 1.0 + 0.45 * zIn * (1 - 0.35 * zOut);
+    document.getElementById("b7-zoom-txt").textContent = `${zm.toFixed(2)}×`;
+    const world = document.getElementById("b7-world");
+    world.style.transform = `scale(${zm.toFixed(3)}) translate3d(${Math.round(-48 * zIn)}px, ${Math.round(-8 * zIn)}px, 0)`;
+    const cur = document.getElementById("b7-cursor");
+    cur.style.left = `${Math.round(780 + 325 * zIn)}px`;
+    cur.style.top = `${Math.round(335 - 65 * zIn)}px`;
+  }
+  // Beat 8 (26.8s - 30.0s)
+  else {
+    showBeat("beat8");
+    const lt = t - 26.8;
+    [0, 1, 2, 3].forEach(i => {
+      const sp = spring(lt - i * 0.18, 200, 22);
+      const cell = document.getElementById(`sc-${i}`);
+      cell.style.opacity = String(clamp01(sp));
+      cell.style.transform = `translate3d(0, ${(1 - sp) * 18}px, 0)`;
+    });
+    const hp = spring(lt - 0.40, 175, 20);
+    const hero = document.getElementById("b8-hero");
+    hero.style.opacity = String(clamp01(hp));
+    hero.style.transform = `translate3d(0, ${(1 - hp) * 28}px, 0)`;
+  }
+};
+</script>
+</body>
+</html>

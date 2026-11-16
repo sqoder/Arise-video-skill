@@ -1,0 +1,93 @@
+{
+  "brand": {
+    "hud_prefix": "AI DAILY",
+    "cta_text": "每天一分钟 · 点个关注",
+    "polaroid_caption": "AI DAILY · WORKSPACE"
+  },
+  "format": {
+    "aspect_ratio": "16:9",
+    "width": 1920,
+    "height": 1080,
+    "fps": 24,
+    "segment_count": 3
+  },
+  "persona": {
+    "mode": "default",
+    "dark_anchor_name": "Woman sitting in editing room",
+    "green_anchor_name": "Woman smiling in studio backdrop",
+    "dark_anchor_path": "assets/default_dark_anchor.png",
+    "green_anchor_path": "assets/default_green_anchor.png",
+    "custom_persona_prompt": ""
+  },
+  "safety": {
+    "auto_derisk": true,
+    "replacements": {
+      "OpenAI": "智能对话平台",
+      "ChatGPT": "智能对话",
+      "Anthropic": "克劳德团队",
+      "Claude": "克劳德",
+      "Gemini": "双子星",
+      "DeepSeek": "深度求索",
+      "NASDAQ": "商业市场",
+      "IPO": "商业扩展",
+      "上市": "商业化拓展",
+      "新闻记者": "视频创作者",
+      "记者": "创作者",
+      "报道": "分享",
+      "股票": "市场",
+      "时事": "行业动态"
+    }
+  },
+  "segments": [
+    {
+      "id": "seg_01",
+      "scene_type": "dark_intro",
+      "clip_path": "clips/seg_01.mp4",
+      "spoken_text": "今天AI圈又有三个大消息，智能对话平台钱包上线、克劳德办公三件套发布，还有双子星和深度求索全部开放新接口。",
+      "kinetic_lines": [
+        "这支视频，",
+        "可不是人工",
+        "剪出来的。"
+      ],
+      "transition_tag": "第一件大事",
+      "behind_head_left": "OpenAI",
+      "behind_head_right": "Wallet",
+      "behind_head_sub": "智能对话钱包上线",
+      "flash_card_title": "ChatGPT Wallet",
+      "flash_card_sub": "AI 直接刷卡买单",
+      "outro_headline": "智能钱包上线",
+      "outro_sub": "AI 直接刷卡买单"
+    },
+    {
+      "id": "seg_02",
+      "scene_type": "green_matte",
+      "clip_path": "clips/seg_02.mp4",
+      "spoken_text": "首先是智能钱包功能上线，以后授权后可以直接自动比价下单；同时克劳德企业办公三件套也同步发布了。",
+      "behind_body_lines": [
+        "刷卡",
+        "买单"
+      ],
+      "green_sub_text": "人脸或指纹授权，AI 自动比价下单",
+      "waveform_title": "授权声浪",
+      "waveform_sub_text": "克劳德企业三件套同步发布",
+      "cutout_wait_text": "智能会议 · 表格",
+      "cutout_title": "企业办公三件套",
+      "cutout_serif_lines": [
+        "Meetings · Sheets",
+        "& Whiteboards"
+      ]
+    },
+    {
+      "id": "seg_03",
+      "scene_type": "dark_finale",
+      "clip_path": "clips/seg_03.mp4",
+      "spoken_text": "同时双子星四代扩展全面开放，深度求索最新接口也支持实时联网与语音，记得点赞关注，明天继续聊。",
+      "broll_hud_sub": "GEMINI 4 & DEEPSEEK API",
+      "broll_caption": "双子星四代扩展 · DeepSeek 原生联网与语音接口全开放",
+      "user_prompt_header": "你只需要说一句话",
+      "user_prompt_text": "把今日AI大事件做成视频",
+      "finale_pre_text": "剩下的全交给",
+      "final_pop_word": "AI"
+    }
+  ]
+}

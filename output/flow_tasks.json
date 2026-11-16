@@ -1,0 +1,45 @@
+{
+  "project": "project.json",
+  "aspect_ratio": "16:9",
+  "tasks": [
+    {
+      "segment_id": "seg_01",
+      "scene_type": "dark_intro",
+      "output_clip_path": "clips/seg_01.mp4",
+      "aspect_ratio": "16:9",
+      "recommended_model": "Veo 3.1 - Lite",
+      "ingredient_name": "Woman sitting in editing room",
+      "ingredient_file": "assets/default_dark_anchor.png",
+      "spoken_text_original": "今天AI圈又有三个大消息，智能对话平台钱包上线、克劳德办公三件套发布，还有双子星和深度求索全部开放新接口。",
+      "spoken_text_safe": "今天AI圈又有三个大消息，智能对话平台钱包上线、克劳德办公三件套发布，还有双子星和深度求索全部开放新接口。",
+      "replacements_applied": [],
+      "flow_prompt": "Same exact young East Asian female video creator from the attached reference ingredient image, keeping identical face, hairstyle, glasses/no-glasses styling, and relaxed dark editing room attire, sitting centered in a dimly lit dark video editing studio, dual glowing blurred editing monitors behind her with warm tungsten key light and soft amber rim light, zero neon blue or purple lighting, shallow depth of field, medium close-up chest-up framing, clean negative space on left and right. Static locked-off tripod camera, eye-level 35mm cinema lens, natural expressive facial delivery and gentle natural hand gestures. 说这段中文，不要字幕不要文字，声音清晰自然，语气有节奏感：“今天AI圈又有三个大消息，智能对话平台钱包上线、克劳德办公三件套发布，还有双子星和深度求索全部开放新接口。” STRICT NO ON-SCREEN TEXT: zero subtitles, zero floating graphics, zero UI overlays, pure clean photorealistic footage."
+    },
+    {
+      "segment_id": "seg_02",
+      "scene_type": "green_matte",
+      "output_clip_path": "clips/seg_02.mp4",
+      "aspect_ratio": "16:9",
+      "recommended_model": "Veo 3.1 - Lite",
+      "ingredient_name": "Woman smiling in studio backdrop",
+      "ingredient_file": "assets/default_green_anchor.png",
+      "spoken_text_original": "首先是智能钱包功能上线，以后授权后可以直接自动比价下单；同时克劳德企业办公三件套也同步发布了。",
+      "spoken_text_safe": "首先是智能钱包功能上线，以后授权后可以直接自动比价下单；同时克劳德企业办公三件套也同步发布了。",
+      "replacements_applied": [],
+      "flow_prompt": "Same exact young East Asian female creator from the attached reference ingredient image, wearing a warm cream knit top, standing/sitting centered in front of a completely clean, flat, even muted sage-green studio wall (#97A396) with soft overhead studio lighting and zero background props or shadows behind her shoulders. Static locked-off tripod camera, eye-level 35mm cinema lens, natural expressive facial delivery and gentle natural hand gestures. 说这段中文，不要字幕不要文字，声音清晰自然，语气有节奏感：“首先是智能钱包功能上线，以后授权后可以直接自动比价下单；同时克劳德企业办公三件套也同步发布了。” STRICT NO ON-SCREEN TEXT: zero subtitles, zero floating graphics, zero UI overlays, pure clean photorealistic footage."
+    },
+    {
+      "segment_id": "seg_03",
+      "scene_type": "dark_finale",
+      "output_clip_path": "clips/seg_03.mp4",
+      "aspect_ratio": "16:9",
+      "recommended_model": "Veo 3.1 - Lite",
+      "ingredient_name": "Woman sitting in editing room",
+      "ingredient_file": "assets/default_dark_anchor.png",
+      "spoken_text_original": "同时双子星四代扩展全面开放，深度求索最新接口也支持实时联网与语音，记得点赞关注，明天继续聊。",
+      "spoken_text_safe": "同时双子星四代扩展全面开放，深度求索最新接口也支持实时联网与语音，记得点赞关注，明天继续聊。",
+      "replacements_applied": [],
+      "flow_prompt": "Same exact young East Asian female video creator from the attached reference ingredient image, keeping identical face, hairstyle, glasses/no-glasses styling, and relaxed dark editing room attire, sitting centered in a warm dark video editing suite, leaning in slightly at the start then giving a confident natural smile and slight hand gesture at the end, blurred warm amber editing monitors in background, zero blue light, shallow depth of field. Static locked-off tripod camera, eye-level 35mm cinema lens, natural expressive facial delivery and gentle natural hand gestures. 说这段中文，不要字幕不要文字，声音清晰自然，语气有节奏感：“同时双子星四代扩展全面开放，深度求索最新接口也支持实时联网与语音，记得点赞关注，明天继续聊。” STRICT NO ON-SCREEN TEXT: zero subtitles, zero floating graphics, zero UI overlays, pure clean photorealistic footage."
+    }
+  ]
+}

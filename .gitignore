@@ -1,0 +1,13 @@
+# Large media files (excluded in lightweight repo mode)
+*.mp4
+*.mov
+*.wav
+*.aiff
+*.mp3
+
+# Temp & OS files
+.DS_Store
+__pycache__/
+*.pyc
+output/.tmp_*
+.tmp_*

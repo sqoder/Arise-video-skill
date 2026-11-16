@@ -1,0 +1,140 @@
+{
+  "series_title": "为什么长视频自动化最怕「音画脱节」与「AI 塑料蓝」？",
+  "cta_text": "订阅收藏 · 获取完整文章讲解",
+  "tts": {
+    "voice": "zh-CN-XiaoxiaoNeural",
+    "mode": "auto"
+  },
+  "format": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 24
+  },
+  "chapters": [
+    {
+      "id": "ch_01",
+      "layout": "title_hook",
+      "short_title": "文章导读",
+      "badge": "MARKDOWN TO VIDEO · EXPLAINER",
+      "title": "为什么长视频自动化最怕「音画脱节」与「AI 塑料蓝」？",
+      "subtitle": "写给内容创作者的长视频架构笔记：把文章拆解成章节、语音、与排版节奏。",
+      "meta_chips": [
+        "5 CHAPTERS",
+        "AUDIO-DRIVEN",
+        "ZERO-BLUE"
+      ],
+      "spoken_text": "今天我们来精读这篇内容：为什么长视频自动化最怕「音画脱节」与「AI 塑料蓝」？。写给内容创作者的长视频架构笔记：把文章拆解成章节、语音、与排版节奏。"
+    },
+    {
+      "id": "ch_02",
+      "layout": "quote_highlight",
+      "short_title": "原文核心观点：视觉质",
+      "source_label": "为什么长视频自动化最怕「音画脱节」与「AI 塑料蓝」？ · 一、原文核心观点：视觉质感先于炫技特效",
+      "quote_parts": [
+        {
+          "text": "真正耐看的知识讲解视频，靠的不是暗蓝夜景和满屏旋",
+          "highlight": false
+        },
+        {
+          "text": "转弹窗，而是暖纸留白、结构化批注与克制的焦点色。",
+          "highlight": true
+        }
+      ],
+      "side_title": "一、原文核心观点：视觉质感先于炫技特效",
+      "bullets": [
+        "75% 画面维持高呼吸感的暖棉纸底色 `#FAF9F5`",
+        "统一用陶土橘 `#D97757` 标记划重点与当前步骤",
+        "每张卡片严格限制 1 个核心焦点，拒绝堆砌"
+      ],
+      "spoken_text": "接下来看一、原文核心观点：视觉质感先于炫技特效。75% 画面维持高呼吸感的暖棉纸底色 `#FAF9F5` 统一用陶土橘 `#D97757` 标记划重点与当前步骤 每张卡片严格限制 1 个核心焦点，拒绝堆砌"
+    },
+    {
+      "id": "ch_03",
+      "layout": "architecture_flow",
+      "short_title": "语音驱动的四步执行架",
+      "title": "二、语音驱动的四步执行架构",
+      "subtitle": "长视频成败的核心在于不再提前写死每幕秒数，而是让真实语音时长反向控制渲染帧数：",
+      "steps": [
+        {
+          "tag": "STEP 01",
+          "title": "第一步：解析文章标题、引用与代码",
+          "desc": "第一步：解析文章标题、引用与代码块，自动匹配排版模板"
+        },
+        {
+          "tag": "STEP 02",
+          "title": "第二步：逐章合成 48kHz 旁",
+          "desc": "第二步：逐章合成 48kHz 旁白音频并提取 RMS 声浪包络"
+        },
+        {
+          "tag": "STEP 03",
+          "title": "第三步：无头 Chrome 逐帧",
+          "desc": "第三步：无头 Chrome 逐帧渲染矢量 HTML/CSS/SVG 舞台"
+        },
+        {
+          "tag": "STEP 04",
+          "title": "第四步：FFmpeg 侧链闪避混",
+          "desc": "第四步：FFmpeg 侧链闪避混音输出 1080p MP4"
+        }
+      ],
+      "spoken_text": "接下来看二、语音驱动的四步执行架构。长视频成败的核心在于不再提前写死每幕秒数，而是让真实语音时长反向控制渲染帧数："
+    },
+    {
+      "id": "ch_04",
+      "layout": "code_walkthrough",
+      "short_title": "核心同步循环代码拆解",
+      "title": "三、核心同步循环代码拆解",
+      "code_filename": "snippet",
+      "code_lang": "PYTHON",
+      "code_lines": [
+        "for idx, chapter in enumerate(chapters):",
+        "    synthesize_chapter_wav(chapter[\"spoken_text\"], wav_path)",
+        "    duration = get_duration(wav_path)",
+        "    frames = max(1, int(round(duration * fps)))",
+        "    for f in range(frames):",
+        "        render_stage_at(idx, f / fps)"
+      ],
+      "annotations": [
+        {
+          "lines": [
+            1,
+            3
+          ],
+          "line_label": "LINES 1-3",
+          "heading": "三、核心同步循环代码拆解",
+          "body": "先合成音频再读取准确 `duration`，消除多章累积误差"
+        },
+        {
+          "lines": [
+            4,
+            6
+          ],
+          "line_label": "LINES 4-6",
+          "heading": "三、核心同步循环代码拆解",
+          "body": "底部字幕按标点切分，随语音推进自动切换高亮句"
+        }
+      ],
+      "spoken_text": "接下来看三、核心同步循环代码拆解。for idx, chapter in enumerate(chapters): synthesize_chapter_wav(chapter[\"spoken_text\"], wav_path) duration = get_duration(wav_path) frames = max(1, int(round(duration * fps))) for "
+    },
+    {
+      "id": "ch_05",
+      "layout": "summary_takeaway",
+      "short_title": "总结与落地建议",
+      "title": "四、总结与落地建议",
+      "takeaways": [
+        {
+          "heading": "要点 1",
+          "body": "直接把任意 Markdown 文章喂给工作流即可拆章出片"
+        },
+        {
+          "heading": "要点 2",
+          "body": "支持随时接入自定义旁白配音或 Google Flow 开场实拍"
+        },
+        {
+          "heading": "要点 3",
+          "body": "每次出片自动导出 9 宫格验片图并检测冷蓝像素比例"
+        }
+      ],
+      "spoken_text": "接下来看四、总结与落地建议。直接把任意 Markdown 文章喂给工作流即可拆章出片 支持随时接入自定义旁白配音或 Google Flow 开场实拍 每次出片自动导出 9 宫格验片图并检测冷蓝像素比例"
+    }
+  ]
+}
